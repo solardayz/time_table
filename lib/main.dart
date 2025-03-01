@@ -59,7 +59,7 @@ Map<String, List<ScheduleData>> globalScheduleMap = {
   ],
 };
 
-// DatabaseHelper: SQFlite를 이용하여 DB 및 schedule 테이블 관리
+// DatabaseHelper: SQFlite를 이용하여 데이터베이스 및 schedule 테이블 관리
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
   DatabaseHelper._privateConstructor();
@@ -254,7 +254,7 @@ class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// DayScheduleView: FutureBuilder를 통해 DB에서 해당 요일의 스케줄을 불러오고,
-/// ReorderableListView 및 삭제 버튼으로 항목의 순서 변경 및 삭제를 지원
+/// ReorderableListView와 우측 삭제 버튼으로 항목의 순서 변경 및 삭제를 지원
 class DayScheduleView extends StatefulWidget {
   final String day;
   DayScheduleView({required this.day});
@@ -300,39 +300,34 @@ class _DayScheduleViewState extends State<DayScheduleView> {
             for (int i = 0; i < schedules.length; i++)
               Container(
                 key: ValueKey(schedules[i].id),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TimeTableItem(
-                        startHour: schedules[i].startHour,
-                        startMinute: schedules[i].startMinute,
-                        title: schedules[i].title,
-                        endHour: schedules[i].endHour,
-                        endMinute: schedules[i].endMinute,
-                        note: schedules[i].note,
+                child: TimeTableItem(
+                  startHour: schedules[i].startHour,
+                  startMinute: schedules[i].startMinute,
+                  title: schedules[i].title,
+                  endHour: schedules[i].endHour,
+                  endMinute: schedules[i].endMinute,
+                  note: schedules[i].note,
+                  onDelete: () async {
+                    bool confirm = await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text("삭제하시겠습니까?"),
+                        content: Text("해당 스케줄을 삭제하시겠습니까?"),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: Text("아니요")),
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: Text("예")),
+                        ],
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async {
-                        bool confirm = await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text("삭제하시겠습니까?"),
-                            content: Text("해당 스케줄을 삭제하시겠습니까?"),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text("아니요")),
-                              TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text("예")),
-                            ],
-                          ),
-                        );
-                        if (confirm && schedules[i].id != null) {
-                          await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
-                          setState(() {});
-                        }
-                      },
-                    ),
-                  ],
+                    );
+                    if (confirm && schedules[i].id != null) {
+                      await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
+                      setState(() {});
+                    }
+                  },
                 ),
               ),
           ],
@@ -342,7 +337,8 @@ class _DayScheduleViewState extends State<DayScheduleView> {
   }
 }
 
-/// TimeTableItem: 스케줄 항목 UI (시간은 "HH:MM" 형식, 특이사항은 우측 정렬)
+/// TimeTableItem: 각 스케줄 항목을 Card 위젯으로 이쁘게 표시
+/// 디자인: 첫 번째 행에 시작시간, 과목, 우측 삭제 버튼 / 두번째 행에 종료시간 / 세번째 행에 특이사항
 class TimeTableItem extends StatelessWidget {
   final int startHour;
   final int startMinute;
@@ -350,6 +346,7 @@ class TimeTableItem extends StatelessWidget {
   final int endHour;
   final int endMinute;
   final String note;
+  final VoidCallback? onDelete;
 
   TimeTableItem({
     required this.startHour,
@@ -358,6 +355,7 @@ class TimeTableItem extends StatelessWidget {
     required this.endHour,
     required this.endMinute,
     required this.note,
+    this.onDelete,
   });
 
   String formatTime(int hour, int minute) {
@@ -368,73 +366,77 @@ class TimeTableItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color customBorderColor = Colors.deepPurpleAccent;
-    final Color customBackgroundColor = Colors.white;
-    final Color customStartTimeColor = Colors.blue;
-    final Color customSubjectColor = Colors.black;
-    final Color customEndTimeColor = Colors.deepPurpleAccent;
-    final Color customNoteColor = Colors.orange;
-
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 8.0),
-      padding: EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: customBackgroundColor,
-        border: Border.all(color: customBorderColor, width: 2),
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-              color: customBorderColor.withOpacity(0.2),
-              offset: Offset(0, 2),
-              blurRadius: 4),
-        ],
+    return Card(
+      elevation: 3,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Colors.grey),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 시작시간과 제목
-          Row(
-            children: [
-              Text(
-                "${formatTime(startHour, startMinute)}",
-                style: TextStyle(
+      child: Padding(
+        padding: EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 첫 번째 행: 시작시간, 과목, 우측 삭제 버튼
+            Row(
+              children: [
+                Text(
+                  formatTime(startHour, startMinute),
+                  style: TextStyle(
                     fontSize: 22,
-                    color: customStartTimeColor,
-                    fontWeight: FontWeight.bold),
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 22,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            // 두 번째 행: 종료시간
+            Text(
+              formatTime(endHour, endMinute),
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.deepPurpleAccent,
+                fontWeight: FontWeight.w500,
               ),
-              SizedBox(width: 12),
-              Text(
-                title,
+            ),
+            SizedBox(height: 8),
+            // 세 번째 행: 특이사항 (우측 정렬)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                note,
                 style: TextStyle(
-                    fontSize: 22,
-                    color: customSubjectColor,
-                    fontWeight: FontWeight.bold),
+                  fontSize: 16,
+                  color: Colors.orange,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
-            ],
-          ),
-          SizedBox(height: 8),
-          // 종료시간
-          Text(
-            formatTime(endHour, endMinute),
-            style: TextStyle(fontSize: 18, color: customEndTimeColor, fontWeight: FontWeight.w500),
-          ),
-          SizedBox(height: 8),
-          // 특이사항 (우측 정렬)
-          Text(
-            note,
-            style: TextStyle(
-                fontSize: 16,
-                color: customNoteColor,
-                fontStyle: FontStyle.italic),
-            textAlign: TextAlign.right,
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// AddScheduleBottomSheet: 스케줄 추가 폼 (요일 선택, 텍스트 입력으로 시간 입력, 밸리데이션 포함)
+/// AddScheduleBottomSheet: 스케줄 추가 폼 (요일 선택, 텍스트 입력으로 시간 입력, 유효성 검사 포함)
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
@@ -489,7 +491,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 ),
               ),
               SizedBox(height: 16),
-              // Day dropdown
+              // 요일 선택 드롭다운
               DropdownButtonFormField<String>(
                 value: _selectedDay,
                 items: days.map((String day) {
@@ -505,11 +507,12 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 },
                 decoration: InputDecoration(
                   labelText: '요일',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
               SizedBox(height: 16),
-              // Start time input (hour and minute)
+              // 시작시간 입력 (시와 분)
               Row(
                 children: [
                   Expanded(
@@ -518,13 +521,16 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                       decoration: InputDecoration(
                         labelText: '시작시간 (시)',
                         hintText: '예: 8',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return '시작시간(시)을 입력하세요.';
+                        if (value == null || value.isEmpty)
+                          return '시작시간(시)을 입력하세요.';
                         final hour = int.tryParse(value);
-                        if (hour == null || hour < 1 || hour > 24) return '1부터 24 사이의 숫자를 입력하세요.';
+                        if (hour == null || hour < 1 || hour > 24)
+                          return '1부터 24 사이의 숫자를 입력하세요.';
                         return null;
                       },
                     ),
@@ -536,13 +542,16 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                       decoration: InputDecoration(
                         labelText: '시작시간 (분)',
                         hintText: '예: 40',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return '시작시간(분)을 입력하세요.';
+                        if (value == null || value.isEmpty)
+                          return '시작시간(분)을 입력하세요.';
                         final minute = int.tryParse(value);
-                        if (minute == null || minute < 0 || minute > 59) return '0부터 59 사이의 숫자를 입력하세요.';
+                        if (minute == null || minute < 0 || minute > 59)
+                          return '0부터 59 사이의 숫자를 입력하세요.';
                         return null;
                       },
                     ),
@@ -550,7 +559,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 ],
               ),
               SizedBox(height: 16),
-              // End time input (hour and minute)
+              // 종료시간 입력 (시와 분)
               Row(
                 children: [
                   Expanded(
@@ -559,13 +568,16 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                       decoration: InputDecoration(
                         labelText: '종료시간 (시)',
                         hintText: '예: 13',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return '종료시간(시)을 입력하세요.';
+                        if (value == null || value.isEmpty)
+                          return '종료시간(시)을 입력하세요.';
                         final hour = int.tryParse(value);
-                        if (hour == null || hour < 1 || hour > 24) return '1부터 24 사이의 숫자를 입력하세요.';
+                        if (hour == null || hour < 1 || hour > 24)
+                          return '1부터 24 사이의 숫자를 입력하세요.';
                         return null;
                       },
                     ),
@@ -577,13 +589,16 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                       decoration: InputDecoration(
                         labelText: '종료시간 (분)',
                         hintText: '예: 30',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return '종료시간(분)을 입력하세요.';
+                        if (value == null || value.isEmpty)
+                          return '종료시간(분)을 입력하세요.';
                         final minute = int.tryParse(value);
-                        if (minute == null || minute < 0 || minute > 59) return '0부터 59 사이의 숫자를 입력하세요.';
+                        if (minute == null || minute < 0 || minute > 59)
+                          return '0부터 59 사이의 숫자를 입력하세요.';
                         return null;
                       },
                     ),
@@ -591,37 +606,36 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 ],
               ),
               SizedBox(height: 16),
-              // Subject input
+              // 과목 입력
               TextFormField(
                 controller: _subjectController,
                 decoration: InputDecoration(
                   labelText: '과목',
                   hintText: '예: 학교',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return '과목을 입력하세요.';
+                  if (value == null || value.isEmpty)
+                    return '과목을 입력하세요.';
                   return null;
                 },
               ),
               SizedBox(height: 16),
-              // Note input (선택사항이므로 validator 주석 처리)
+              // 특이사항 입력 (선택사항)
               TextFormField(
                 controller: _noteController,
                 decoration: InputDecoration(
                   labelText: '특이사항',
                   hintText: '예: 추가 메모',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
-                // validator: (value) {
-                //   if (value == null || value.isEmpty) return '특이사항을 입력하세요.';
-                //   return null;
-                // },
               ),
               SizedBox(height: 16),
               Divider(thickness: 2),
               SizedBox(height: 16),
-              // Save button
+              // 저장 버튼
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -649,11 +663,15 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 child: Text(
                   '저장',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
               ),
               SizedBox(height: 16),
