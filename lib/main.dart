@@ -376,7 +376,7 @@ class TimeTableItem extends StatelessWidget {
     final Color customBackgroundColor = Colors.white;
     final Color customStartTimeColor = Colors.blue;
     final Color customSubjectColor = Colors.black;
-    final Color customEndTimeColor = Colors.blueAccent;
+    final Color customEndTimeColor = Colors.deepPurpleAccent;
     final Color customNoteColor = Colors.orange;
 
     return Container(
