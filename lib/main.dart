@@ -1,201 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:numberpicker/numberpicker.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 void main() {
   runApp(TimeTableApp());
 }
-
-// Global day list
-const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
-
-// Global schedule map with time split into hours and minutes.
-Map<String, List<ScheduleData>> scheduleMap = {
-  '월': [
-    ScheduleData(
-      order: 1,
-      startHour: 8,
-      startMinute: 40,
-      endHour: 13,
-      endMinute: 40,
-      title: '학교',
-      note: '정규 수업',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 14,
-      startMinute: 34,
-      endHour: 15,
-      endMinute: 15,
-      title: '구몬학습',
-      note: '온라인 학습',
-    ),
-    ScheduleData(
-      order: 3,
-      startHour: 16,
-      startMinute: 0,
-      endHour: 18,
-      endMinute: 25,
-      title: '늘푸른수학',
-      note: '보충 수업',
-    ),
-  ],
-  '화': [
-    ScheduleData(
-      order: 1,
-      startHour: 9,
-      startMinute: 0,
-      endHour: 10,
-      endMinute: 30,
-      title: '수학',
-      note: '문제 풀이',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 11,
-      startMinute: 0,
-      endHour: 12,
-      endMinute: 0,
-      title: '영어',
-      note: '독해',
-    ),
-    ScheduleData(
-      order: 3,
-      startHour: 13,
-      startMinute: 30,
-      endHour: 15,
-      endMinute: 0,
-      title: '과학',
-      note: '실험',
-    ),
-  ],
-  '수': [
-    ScheduleData(
-      order: 1,
-      startHour: 8,
-      startMinute: 50,
-      endHour: 10,
-      endMinute: 20,
-      title: '음악',
-      note: '연습',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 10,
-      startMinute: 30,
-      endHour: 12,
-      endMinute: 0,
-      title: '미술',
-      note: '그림',
-    ),
-    ScheduleData(
-      order: 3,
-      startHour: 13,
-      startMinute: 0,
-      endHour: 14,
-      endMinute: 30,
-      title: '체육',
-      note: '운동',
-    ),
-  ],
-  '목': [
-    ScheduleData(
-      order: 1,
-      startHour: 9,
-      startMinute: 10,
-      endHour: 10,
-      endMinute: 50,
-      title: '국어',
-      note: '독서',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 11,
-      startMinute: 0,
-      endHour: 12,
-      endMinute: 30,
-      title: '역사',
-      note: '토론',
-    ),
-    ScheduleData(
-      order: 3,
-      startHour: 13,
-      startMinute: 20,
-      endHour: 15,
-      endMinute: 0,
-      title: '사회',
-      note: '프로젝트',
-    ),
-  ],
-  '금': [
-    ScheduleData(
-      order: 1,
-      startHour: 8,
-      startMinute: 30,
-      endHour: 10,
-      endMinute: 0,
-      title: '수학',
-      note: '복습',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 10,
-      startMinute: 10,
-      endHour: 11,
-      endMinute: 40,
-      title: '영어',
-      note: '어휘',
-    ),
-    ScheduleData(
-      order: 3,
-      startHour: 12,
-      startMinute: 0,
-      endHour: 13,
-      endMinute: 30,
-      title: '과학',
-      note: '퀴즈',
-    ),
-  ],
-  '토': [
-    ScheduleData(
-      order: 1,
-      startHour: 10,
-      startMinute: 0,
-      endHour: 12,
-      endMinute: 0,
-      title: '미술',
-      note: '자유 활동',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 13,
-      startMinute: 0,
-      endHour: 15,
-      endMinute: 0,
-      title: '체육',
-      note: '축구',
-    ),
-  ],
-  '일': [
-    ScheduleData(
-      order: 1,
-      startHour: 11,
-      startMinute: 0,
-      endHour: 12,
-      endMinute: 30,
-      title: '독서',
-      note: '자기계발',
-    ),
-    ScheduleData(
-      order: 2,
-      startHour: 14,
-      startMinute: 0,
-      endHour: 16,
-      endMinute: 0,
-      title: '영화',
-      note: '가족과 함께',
-    ),
-  ],
-};
 
 class TimeTableApp extends StatelessWidget {
   @override
@@ -207,13 +17,142 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// Main screen that uses setState to update the UI when schedules change.
+// Global day list
+const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
+
+// DatabaseHelper: SQFlite를 사용하여 데이터베이스 및 schedule 테이블을 관리
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
+  DatabaseHelper._privateConstructor();
+
+  static Database? _database;
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    String path = join(await getDatabasesPath(), 'timetable.db');
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _onCreate,
+    );
+  }
+
+  Future _onCreate(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE schedule (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        day TEXT NOT NULL,
+        startHour INTEGER NOT NULL,
+        startMinute INTEGER NOT NULL,
+        endHour INTEGER NOT NULL,
+        endMinute INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        note TEXT NOT NULL,
+        scheduleOrder INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  Future<int> insertSchedule(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.insert('schedule', row);
+  }
+
+  Future<List<Map<String, dynamic>>> querySchedulesByDay(String day) async {
+    Database db = await instance.database;
+    return await db.query(
+      'schedule',
+      where: 'day = ?',
+      whereArgs: [day],
+      orderBy: 'scheduleOrder ASC',
+    );
+  }
+
+  Future<int> updateScheduleOrder(int id, int newOrder) async {
+    Database db = await instance.database;
+    return await db.update(
+      'schedule',
+      {'scheduleOrder': newOrder},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+}
+
+// ScheduleData 모델 (시간 세분화 및 순서, 요일 포함)
+class ScheduleData {
+  int? id;
+  int order;
+  final int startHour;
+  final int startMinute;
+  final int endHour;
+  final int endMinute;
+  final String title;
+  final String note;
+  final String day;
+
+  ScheduleData({
+    this.id,
+    required this.order,
+    required this.startHour,
+    required this.startMinute,
+    required this.endHour,
+    required this.endMinute,
+    required this.title,
+    this.note = '',
+    required this.day,
+  });
+
+  Map<String, dynamic> toMap() {
+    var map = <String, dynamic>{
+      'day': day,
+      'startHour': startHour,
+      'startMinute': startMinute,
+      'endHour': endHour,
+      'endMinute': endMinute,
+      'title': title,
+      'note': note,
+      'scheduleOrder': order,
+    };
+    if (id != null) {
+      map['id'] = id;
+    }
+    return map;
+  }
+
+  factory ScheduleData.fromMap(Map<String, dynamic> map) {
+    return ScheduleData(
+      id: map['id'],
+      day: map['day'],
+      order: map['scheduleOrder'],
+      startHour: map['startHour'],
+      startMinute: map['startMinute'],
+      endHour: map['endHour'],
+      endMinute: map['endMinute'],
+      title: map['title'],
+      note: map['note'],
+    );
+  }
+}
+
+// 메인 화면: 각 요일별 스케줄을 DB에서 불러와 표시하고, 새로운 스케줄 추가 후 setState로 UI 갱신
 class TimeTableHome extends StatefulWidget {
   @override
   _TimeTableHomeState createState() => _TimeTableHomeState();
 }
 
 class _TimeTableHomeState extends State<TimeTableHome> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the database
+    DatabaseHelper.instance.database;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -224,7 +163,6 @@ class _TimeTableHomeState extends State<TimeTableHome> {
           bottom: AnimatedTabBar(),
         ),
         body: TabBarView(
-          // Create each day view using the day string.
           children: days.map<Widget>((day) => DayScheduleView(day: day)).toList(),
         ),
         floatingActionButton: Builder(
@@ -232,7 +170,6 @@ class _TimeTableHomeState extends State<TimeTableHome> {
             return FloatingActionButton(
               child: Icon(Icons.add),
               onPressed: () {
-                // Show bottom sheet and refresh UI after it's closed.
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -240,7 +177,7 @@ class _TimeTableHomeState extends State<TimeTableHome> {
                     return AddScheduleBottomSheet();
                   },
                 ).then((_) {
-                  setState(() {});
+                  setState(() {}); // Refresh UI after adding a schedule.
                 });
               },
             );
@@ -251,7 +188,7 @@ class _TimeTableHomeState extends State<TimeTableHome> {
   }
 }
 
-/// AnimatedTabBar: Displays day tabs with animated text size.
+/// AnimatedTabBar: 탭 텍스트 애니메이션 효과 (선택 시 크게)
 class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(48.0);
@@ -281,28 +218,7 @@ class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// ScheduleData model (with time split into hours and minutes and an order field).
-class ScheduleData {
-  int order;
-  final int startHour;
-  final int startMinute;
-  final int endHour;
-  final int endMinute;
-  final String title;
-  final String note;
-
-  ScheduleData({
-    required this.order,
-    required this.startHour,
-    required this.startMinute,
-    required this.endHour,
-    required this.endMinute,
-    required this.title,
-    this.note = '',
-  });
-}
-
-/// DayScheduleView: Displays schedules for a day in a reorderable list.
+/// DayScheduleView: Fetches schedules for a given day from DB and displays them in a reorderable list.
 class DayScheduleView extends StatefulWidget {
   final String day;
   DayScheduleView({required this.day});
@@ -311,43 +227,68 @@ class DayScheduleView extends StatefulWidget {
 }
 
 class _DayScheduleViewState extends State<DayScheduleView> {
+  late Future<List<ScheduleData>> _futureSchedules;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSchedules();
+  }
+
+  void _fetchSchedules() {
+    _futureSchedules = DatabaseHelper.instance.querySchedulesByDay(widget.day).then(
+          (rows) => rows.map((row) => ScheduleData.fromMap(row)).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Always compute the sorted schedules from the global map.
-    List<ScheduleData> sortedSchedules = List<ScheduleData>.from(scheduleMap[widget.day] ?? []);
-    sortedSchedules.sort((a, b) => a.order.compareTo(b.order));
-    return ReorderableListView(
-      padding: EdgeInsets.all(16.0),
-      onReorder: (oldIndex, newIndex) {
-        setState(() {
-          if (newIndex > oldIndex) newIndex -= 1;
-          final item = sortedSchedules.removeAt(oldIndex);
-          sortedSchedules.insert(newIndex, item);
-          for (int i = 0; i < sortedSchedules.length; i++) {
-            sortedSchedules[i].order = i + 1;
-          }
-          scheduleMap[widget.day] = sortedSchedules;
-        });
+    return FutureBuilder<List<ScheduleData>>(
+      future: _futureSchedules,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting)
+          return Center(child: CircularProgressIndicator());
+        if (snapshot.hasError)
+          return Center(child: Text('Error: ${snapshot.error}'));
+
+        List<ScheduleData> schedules = snapshot.data ?? [];
+        schedules.sort((a, b) => a.order.compareTo(b.order));
+        return ReorderableListView(
+          padding: EdgeInsets.all(16.0),
+          onReorder: (oldIndex, newIndex) async {
+            setState(() {
+              if (newIndex > oldIndex) newIndex -= 1;
+              final item = schedules.removeAt(oldIndex);
+              schedules.insert(newIndex, item);
+              for (int i = 0; i < schedules.length; i++) {
+                schedules[i].order = i + 1;
+                // Update order in DB.
+                if (schedules[i].id != null)
+                  DatabaseHelper.instance.updateScheduleOrder(schedules[i].id!, i + 1);
+              }
+            });
+          },
+          children: [
+            for (int i = 0; i < schedules.length; i++)
+              Container(
+                key: ValueKey(schedules[i].id),
+                child: TimeTableItem(
+                  startHour: schedules[i].startHour,
+                  startMinute: schedules[i].startMinute,
+                  title: schedules[i].title,
+                  endHour: schedules[i].endHour,
+                  endMinute: schedules[i].endMinute,
+                  note: schedules[i].note,
+                ),
+              ),
+          ],
+        );
       },
-      children: [
-        for (int i = 0; i < sortedSchedules.length; i++)
-          Container(
-            key: ValueKey(sortedSchedules[i].order),
-            child: TimeTableItem(
-              startHour: sortedSchedules[i].startHour,
-              startMinute: sortedSchedules[i].startMinute,
-              title: sortedSchedules[i].title,
-              endHour: sortedSchedules[i].endHour,
-              endMinute: sortedSchedules[i].endMinute,
-              note: sortedSchedules[i].note,
-            ),
-          ),
-      ],
     );
   }
 }
 
-/// TimeTableItem: UI for a schedule item with formatted time and right-aligned note.
+/// TimeTableItem: UI for a schedule item (displays time as "HH:MM" and right-aligns the note)
 class TimeTableItem extends StatelessWidget {
   final int startHour;
   final int startMinute;
@@ -392,7 +333,7 @@ class TimeTableItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row for start time and title.
+          // Start time and title.
           Row(
             children: [
               Text(
@@ -413,7 +354,7 @@ class TimeTableItem extends StatelessWidget {
             style: TextStyle(fontSize: 14, color: customEndTimeColor),
           ),
           SizedBox(height: 8),
-          // Note, right-aligned.
+          // Note (right-aligned).
           Text(
             note,
             style: TextStyle(fontSize: 16, color: customNoteColor, fontStyle: FontStyle.italic),
@@ -617,21 +558,17 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final newSchedule = ScheduleData(
-                      order: 0, // will be updated below
+                      order: 0, // Will be updated later.
                       startHour: int.parse(_startHourController.text),
                       startMinute: int.parse(_startMinuteController.text),
                       endHour: int.parse(_endHourController.text),
                       endMinute: int.parse(_endMinuteController.text),
                       title: _subjectController.text,
                       note: _noteController.text,
+                      day: _selectedDay,
                     );
-                    if (scheduleMap[_selectedDay] != null) {
-                      newSchedule.order = scheduleMap[_selectedDay]!.length + 1;
-                      scheduleMap[_selectedDay]!.add(newSchedule);
-                    } else {
-                      newSchedule.order = 1;
-                      scheduleMap[_selectedDay] = [newSchedule];
-                    }
+                    // Insert new schedule into the database.
+                    DatabaseHelper.instance.insertSchedule(newSchedule.toMap());
                     Navigator.of(context).pop();
                   }
                 },
