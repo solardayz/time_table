@@ -267,8 +267,6 @@ class TimeTableItem extends StatelessWidget {
   }
 }
 
-/// 스케줄 추가용 Bottom Sheet (요일 선택 포함)
-/// 입력 후 "저장" 버튼을 누르면 해당 요일의 scheduleMap에 저장됩니다.
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
@@ -280,7 +278,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  // 기본 선택 요일은 days 리스트의 첫 번째
+  // 기본 선택 요일은 전역 days 리스트의 첫 번째
   String _selectedDay = days.first;
 
   @override
@@ -305,7 +303,17 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 요일 선택 드롭다운
+            // 상단 드래그 핸들 (작은 회색 막대)
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 16),
+            // 요일 선택 드롭다운 (원하는 경우 상단에 배치)
             DropdownButtonFormField<String>(
               value: _selectedDay,
               items: days.map((String day) {
@@ -321,51 +329,70 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
               },
               decoration: InputDecoration(
                 labelText: '요일',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-            SizedBox(height: 10),
-            // 시작시간 입력
-            TextField(
-              controller: _startTimeController,
-              decoration: InputDecoration(
-                labelText: '시작시간',
-                hintText: '예: 08:40',
-                border: OutlineInputBorder(),
-              ),
+            SizedBox(height: 16),
+            // 첫 번째 행: 시작시간과 종료시간 (나란히 배치)
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _startTimeController,
+                    decoration: InputDecoration(
+                      labelText: '시작시간',
+                      hintText: '예: 08:40',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _endTimeController,
+                    decoration: InputDecoration(
+                      labelText: '종료시간',
+                      hintText: '예: 13:40',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 10),
-            // 종료시간 입력
-            TextField(
-              controller: _endTimeController,
-              decoration: InputDecoration(
-                labelText: '종료시간',
-                hintText: '예: 13:40',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 10),
-            // 과목 입력
+            SizedBox(height: 16),
+            // 두 번째 행: 과목
             TextField(
               controller: _subjectController,
               decoration: InputDecoration(
                 labelText: '과목',
                 hintText: '예: 학교',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-            SizedBox(height: 10),
-            // 특이사항 입력
+            SizedBox(height: 16),
+            // 세 번째 행: 특이사항
             TextField(
               controller: _noteController,
               decoration: InputDecoration(
                 labelText: '특이사항',
                 hintText: '예: 추가 메모',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-            SizedBox(height: 20),
-            // 저장 버튼: 입력한 스케줄을 선택한 요일의 scheduleMap에 저장
+            SizedBox(height: 16),
+            Divider(thickness: 2),
+            SizedBox(height: 16),
+            // 저장 버튼
             ElevatedButton(
               onPressed: () {
                 final newSchedule = ScheduleData(
@@ -381,9 +408,19 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 }
                 Navigator.of(context).pop();
               },
-              child: Text('저장'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                '저장',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.white),
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 16),
           ],
         ),
       ),
