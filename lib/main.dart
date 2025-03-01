@@ -227,32 +227,21 @@ class DayScheduleView extends StatefulWidget {
 }
 
 class _DayScheduleViewState extends State<DayScheduleView> {
-  late Future<List<ScheduleData>> _futureSchedules;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchSchedules();
-  }
-
-  void _fetchSchedules() {
-    _futureSchedules = DatabaseHelper.instance.querySchedulesByDay(widget.day).then(
-          (rows) => rows.map((row) => ScheduleData.fromMap(row)).toList(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<ScheduleData>>(
-      future: _futureSchedules,
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseHelper.instance.querySchedulesByDay(widget.day),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
           return Center(child: CircularProgressIndicator());
         if (snapshot.hasError)
           return Center(child: Text('Error: ${snapshot.error}'));
 
-        List<ScheduleData> schedules = snapshot.data ?? [];
+        List<ScheduleData> schedules = (snapshot.data ?? [])
+            .map((row) => ScheduleData.fromMap(row))
+            .toList();
         schedules.sort((a, b) => a.order.compareTo(b.order));
+
         return ReorderableListView(
           padding: EdgeInsets.all(16.0),
           onReorder: (oldIndex, newIndex) async {
@@ -262,7 +251,6 @@ class _DayScheduleViewState extends State<DayScheduleView> {
               schedules.insert(newIndex, item);
               for (int i = 0; i < schedules.length; i++) {
                 schedules[i].order = i + 1;
-                // Update order in DB.
                 if (schedules[i].id != null)
                   DatabaseHelper.instance.updateScheduleOrder(schedules[i].id!, i + 1);
               }
