@@ -4,10 +4,10 @@ void main() {
   runApp(TimeTableApp());
 }
 
-// 전역에 요일 목록을 선언
+// 전역에 요일 목록 선언
 const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 전역에 요일별 스케줄 데이터를 선언 (Map 형태)
+// 전역에 요일별 스케줄 데이터를 Map으로 선언
 Map<String, List<ScheduleData>> scheduleMap = {
   '월': [
     ScheduleData(start: '08:40', end: '13:40', title: '학교', note: '정규 수업'),
@@ -49,37 +49,51 @@ class TimeTableApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '타임테이블 앱',
-      home: DefaultTabController(
-        length: days.length,
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text('타임테이블'),
-            bottom: AnimatedTabBar(),
-          ),
-          // TabBarView에 동적으로 데이터를 넣음
-          body: TabBarView(
-            children: days
-                .map((day) =>
-                DayScheduleView(schedules: scheduleMap[day] ?? []))
-                .toList(),
-          ),
-          // FAB를 눌렀을 때 Bottom Sheet 호출
-          floatingActionButton: Builder(
-            builder: (context) {
-              return FloatingActionButton(
-                child: Icon(Icons.add),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (BuildContext context) {
-                      return AddScheduleBottomSheet();
-                    },
-                  );
-                },
-              );
-            },
-          ),
+      home: TimeTableHome(),
+    );
+  }
+}
+
+// 메인 화면을 StatefulWidget으로 변경하여 스케줄이 추가될 때 setState로 갱신
+class TimeTableHome extends StatefulWidget {
+  @override
+  _TimeTableHomeState createState() => _TimeTableHomeState();
+}
+
+class _TimeTableHomeState extends State<TimeTableHome> {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: days.length,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('타임테이블'),
+          bottom: AnimatedTabBar(),
+        ),
+        // 각 요일별 스케줄을 동적으로 표시
+        body: TabBarView(
+          children: days
+              .map((day) => DayScheduleView(schedules: scheduleMap[day] ?? []))
+              .toList(),
+        ),
+        // FAB를 누르면 Bottom Sheet가 뜨고, 닫힌 후 setState를 호출하여 화면 갱신
+        floatingActionButton: Builder(
+          builder: (context) {
+            return FloatingActionButton(
+              child: Icon(Icons.add),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (BuildContext context) {
+                    return AddScheduleBottomSheet();
+                  },
+                ).then((value) {
+                  setState(() {}); // 저장 후 화면 갱신
+                });
+              },
+            );
+          },
         ),
       ),
     );
@@ -87,7 +101,7 @@ class TimeTableApp extends StatelessWidget {
 }
 
 /// 애니메이션 효과가 적용된 TabBar 위젯
-/// 기본 탭은 작게, 선택된 탭은 크게 표시합니다.
+/// 선택된 탭은 글씨 크기가 크게, 미선택 탭은 작게 표시됩니다.
 class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(48.0);
@@ -143,7 +157,6 @@ class ScheduleData {
 /// 각 요일의 스케줄을 ListView로 보여주는 위젯
 class DayScheduleView extends StatelessWidget {
   final List<ScheduleData> schedules;
-
   DayScheduleView({required this.schedules});
 
   @override
@@ -165,9 +178,7 @@ class DayScheduleView extends StatelessWidget {
 }
 
 /// 커스텀 스타일이 적용된 스케줄 항목 UI
-/// [시작시간] [과목]
-/// [종료시간]
-/// [특이사항]
+/// [시작시간] [과목] / [종료시간] / [특이사항]
 class TimeTableItem extends StatelessWidget {
   final String startTime;
   final String title;
@@ -257,6 +268,7 @@ class TimeTableItem extends StatelessWidget {
 }
 
 /// 스케줄 추가용 Bottom Sheet (요일 선택 포함)
+/// 입력 후 "저장" 버튼을 누르면 해당 요일의 scheduleMap에 저장됩니다.
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
@@ -268,6 +280,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
+  // 기본 선택 요일은 days 리스트의 첫 번째
   String _selectedDay = days.first;
 
   @override
@@ -352,17 +365,15 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
               ),
             ),
             SizedBox(height: 20),
-            // 저장 버튼 (저장 로직은 필요에 따라 확장)
+            // 저장 버튼: 입력한 스케줄을 선택한 요일의 scheduleMap에 저장
             ElevatedButton(
               onPressed: () {
-                // 예시: 새로운 스케줄을 선택한 요일에 추가하는 로직
                 final newSchedule = ScheduleData(
                   start: _startTimeController.text,
                   end: _endTimeController.text,
                   title: _subjectController.text,
                   note: _noteController.text,
                 );
-                // 해당 요일에 데이터가 있다면 추가, 없으면 새 리스트 생성
                 if (scheduleMap[_selectedDay] != null) {
                   scheduleMap[_selectedDay]!.add(newSchedule);
                 } else {
