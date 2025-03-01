@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:numberpicker/numberpicker.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:numberpicker/numberpicker.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseHelper.instance.initializeDatabase();
   runApp(TimeTableApp());
 }
 
@@ -17,10 +19,47 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// Global day list
+// 전역에 요일 목록 선언
 const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
 
-// DatabaseHelper: SQFlite를 사용하여 데이터베이스 및 schedule 테이블을 관리
+// 전역 변수 (global)로 스케줄 데이터를 관리
+Map<String, List<ScheduleData>> globalScheduleMap = {
+  '월': [
+    ScheduleData(order: 1, startHour: 8, startMinute: 40, endHour: 13, endMinute: 40, title: '학교', note: '정규 수업', day: '월'),
+    ScheduleData(order: 2, startHour: 14, startMinute: 34, endHour: 15, endMinute: 15, title: '구몬학습', note: '온라인 학습', day: '월'),
+    ScheduleData(order: 3, startHour: 16, startMinute: 0, endHour: 18, endMinute: 25, title: '늘푸른수학', note: '보충 수업', day: '월'),
+  ],
+  '화': [
+    ScheduleData(order: 1, startHour: 9, startMinute: 0, endHour: 10, endMinute: 30, title: '수학', note: '문제 풀이', day: '화'),
+    ScheduleData(order: 2, startHour: 11, startMinute: 0, endHour: 12, endMinute: 0, title: '영어', note: '독해', day: '화'),
+    ScheduleData(order: 3, startHour: 13, startMinute: 30, endHour: 15, endMinute: 0, title: '과학', note: '실험', day: '화'),
+  ],
+  '수': [
+    ScheduleData(order: 1, startHour: 8, startMinute: 50, endHour: 10, endMinute: 20, title: '음악', note: '연습', day: '수'),
+    ScheduleData(order: 2, startHour: 10, startMinute: 30, endHour: 12, endMinute: 0, title: '미술', note: '그림', day: '수'),
+    ScheduleData(order: 3, startHour: 13, startMinute: 0, endHour: 14, endMinute: 30, title: '체육', note: '운동', day: '수'),
+  ],
+  '목': [
+    ScheduleData(order: 1, startHour: 9, startMinute: 10, endHour: 10, endMinute: 50, title: '국어', note: '독서', day: '목'),
+    ScheduleData(order: 2, startHour: 11, startMinute: 0, endHour: 12, endMinute: 30, title: '역사', note: '토론', day: '목'),
+    ScheduleData(order: 3, startHour: 13, startMinute: 20, endHour: 15, endMinute: 0, title: '사회', note: '프로젝트', day: '목'),
+  ],
+  '금': [
+    ScheduleData(order: 1, startHour: 8, startMinute: 30, endHour: 10, endMinute: 0, title: '수학', note: '복습', day: '금'),
+    ScheduleData(order: 2, startHour: 10, startMinute: 10, endHour: 11, endMinute: 40, title: '영어', note: '어휘', day: '금'),
+    ScheduleData(order: 3, startHour: 12, startMinute: 0, endHour: 13, endMinute: 30, title: '과학', note: '퀴즈', day: '금'),
+  ],
+  '토': [
+    ScheduleData(order: 1, startHour: 10, startMinute: 0, endHour: 12, endMinute: 0, title: '미술', note: '자유 활동', day: '토'),
+    ScheduleData(order: 2, startHour: 13, startMinute: 0, endHour: 15, endMinute: 0, title: '체육', note: '축구', day: '토'),
+  ],
+  '일': [
+    ScheduleData(order: 1, startHour: 11, startMinute: 0, endHour: 12, endMinute: 30, title: '독서', note: '자기계발', day: '일'),
+    ScheduleData(order: 2, startHour: 14, startMinute: 0, endHour: 16, endMinute: 0, title: '영화', note: '가족과 함께', day: '일'),
+  ],
+};
+
+// DatabaseHelper: SQFlite를 사용하여 데이터베이스 및 schedule 테이블 관리
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
   DatabaseHelper._privateConstructor();
@@ -34,11 +73,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'timetable.db');
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
   Future _onCreate(Database db, int version) async {
@@ -81,9 +116,18 @@ class DatabaseHelper {
       whereArgs: [id],
     );
   }
+
+  Future<int> deleteSchedule(int id) async {
+    Database db = await instance.database;
+    return await db.delete('schedule', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future initializeDatabase() async {
+    await database;
+  }
 }
 
-// ScheduleData 모델 (시간 세분화 및 순서, 요일 포함)
+/// ScheduleData 모델 (시간 세분화, 요일 및 순서 포함)
 class ScheduleData {
   int? id;
   int order;
@@ -139,20 +183,13 @@ class ScheduleData {
   }
 }
 
-// 메인 화면: 각 요일별 스케줄을 DB에서 불러와 표시하고, 새로운 스케줄 추가 후 setState로 UI 갱신
+/// TimeTableHome: 메인 화면 – 각 요일 탭과 해당 스케줄을 DB에서 불러와 표시
 class TimeTableHome extends StatefulWidget {
   @override
   _TimeTableHomeState createState() => _TimeTableHomeState();
 }
 
 class _TimeTableHomeState extends State<TimeTableHome> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize the database
-    DatabaseHelper.instance.database;
-  }
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -173,11 +210,9 @@ class _TimeTableHomeState extends State<TimeTableHome> {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  builder: (BuildContext context) {
-                    return AddScheduleBottomSheet();
-                  },
+                  builder: (context) => AddScheduleBottomSheet(),
                 ).then((_) {
-                  setState(() {}); // Refresh UI after adding a schedule.
+                  setState(() {});
                 });
               },
             );
@@ -188,7 +223,7 @@ class _TimeTableHomeState extends State<TimeTableHome> {
   }
 }
 
-/// AnimatedTabBar: 탭 텍스트 애니메이션 효과 (선택 시 크게)
+/// AnimatedTabBar: 각 요일 탭을 애니메이션 효과와 함께 표시
 class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(48.0);
@@ -218,7 +253,8 @@ class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// DayScheduleView: Fetches schedules for a given day from DB and displays them in a reorderable list.
+/// DayScheduleView: FutureBuilder를 통해 DB에서 해당 요일의 스케줄을 불러오고,
+/// ReorderableListView 및 Dismissible로 항목의 순서 변경 및 삭제를 지원
 class DayScheduleView extends StatefulWidget {
   final String day;
   DayScheduleView({required this.day});
@@ -227,21 +263,26 @@ class DayScheduleView extends StatefulWidget {
 }
 
 class _DayScheduleViewState extends State<DayScheduleView> {
+  Future<List<ScheduleData>> _fetchSchedules() async {
+    List<Map<String, dynamic>> rows =
+    await DatabaseHelper.instance.querySchedulesByDay(widget.day);
+    List<ScheduleData> schedules =
+    rows.map((row) => ScheduleData.fromMap(row)).toList();
+    schedules.sort((a, b) => a.order.compareTo(b.order));
+    return schedules;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.instance.querySchedulesByDay(widget.day),
+    return FutureBuilder<List<ScheduleData>>(
+      future: _fetchSchedules(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
           return Center(child: CircularProgressIndicator());
         if (snapshot.hasError)
           return Center(child: Text('Error: ${snapshot.error}'));
 
-        List<ScheduleData> schedules = (snapshot.data ?? [])
-            .map((row) => ScheduleData.fromMap(row))
-            .toList();
-        schedules.sort((a, b) => a.order.compareTo(b.order));
-
+        List<ScheduleData> schedules = snapshot.data ?? [];
         return ReorderableListView(
           padding: EdgeInsets.all(16.0),
           onReorder: (oldIndex, newIndex) async {
@@ -251,22 +292,51 @@ class _DayScheduleViewState extends State<DayScheduleView> {
               schedules.insert(newIndex, item);
               for (int i = 0; i < schedules.length; i++) {
                 schedules[i].order = i + 1;
-                if (schedules[i].id != null)
+                if (schedules[i].id != null) {
                   DatabaseHelper.instance.updateScheduleOrder(schedules[i].id!, i + 1);
+                }
               }
             });
           },
           children: [
             for (int i = 0; i < schedules.length; i++)
-              Container(
+              Dismissible(
                 key: ValueKey(schedules[i].id),
-                child: TimeTableItem(
-                  startHour: schedules[i].startHour,
-                  startMinute: schedules[i].startMinute,
-                  title: schedules[i].title,
-                  endHour: schedules[i].endHour,
-                  endMinute: schedules[i].endMinute,
-                  note: schedules[i].note,
+                direction: DismissDirection.endToStart,
+                confirmDismiss: (direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text("삭제하시겠습니까?"),
+                      content: Text("해당 스케줄을 삭제하시겠습니까?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: Text("아니요"),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: Text("예"),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                onDismissed: (direction) async {
+                  if (schedules[i].id != null) {
+                    await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
+                  }
+                  setState(() {});
+                },
+                child: Container(
+                  child: TimeTableItem(
+                    startHour: schedules[i].startHour,
+                    startMinute: schedules[i].startMinute,
+                    title: schedules[i].title,
+                    endHour: schedules[i].endHour,
+                    endMinute: schedules[i].endMinute,
+                    note: schedules[i].note,
+                  ),
                 ),
               ),
           ],
@@ -276,7 +346,7 @@ class _DayScheduleViewState extends State<DayScheduleView> {
   }
 }
 
-/// TimeTableItem: UI for a schedule item (displays time as "HH:MM" and right-aligns the note)
+/// TimeTableItem: 스케줄 항목 UI (시간은 "HH:MM" 형식, 특이사항은 우측 정렬)
 class TimeTableItem extends StatelessWidget {
   final int startHour;
   final int startMinute;
@@ -295,7 +365,9 @@ class TimeTableItem extends StatelessWidget {
   });
 
   String formatTime(int hour, int minute) {
-    return hour.toString().padLeft(2, '0') + ":" + minute.toString().padLeft(2, '0');
+    return hour.toString().padLeft(2, '0') +
+        ":" +
+        minute.toString().padLeft(2, '0');
   }
 
   @override
@@ -315,37 +387,49 @@ class TimeTableItem extends StatelessWidget {
         border: Border.all(color: customBorderColor, width: 2),
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
-          BoxShadow(color: customBorderColor.withOpacity(0.2), offset: Offset(0, 2), blurRadius: 4),
+          BoxShadow(
+              color: customBorderColor.withOpacity(0.2),
+              offset: Offset(0, 2),
+              blurRadius: 4),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Start time and title.
+          // 시작시간과 제목
           Row(
             children: [
               Text(
                 "${formatTime(startHour, startMinute)}.",
-                style: TextStyle(fontSize: 22, color: customStartTimeColor, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 22,
+                    color: customStartTimeColor,
+                    fontWeight: FontWeight.bold),
               ),
               SizedBox(width: 12),
               Text(
                 title,
-                style: TextStyle(fontSize: 22, color: customSubjectColor, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 22,
+                    color: customSubjectColor,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
           SizedBox(height: 8),
-          // End time.
+          // 종료시간
           Text(
             formatTime(endHour, endMinute),
             style: TextStyle(fontSize: 14, color: customEndTimeColor),
           ),
           SizedBox(height: 8),
-          // Note (right-aligned).
+          // 특이사항 (우측 정렬)
           Text(
             note,
-            style: TextStyle(fontSize: 16, color: customNoteColor, fontStyle: FontStyle.italic),
+            style: TextStyle(
+                fontSize: 16,
+                color: customNoteColor,
+                fontStyle: FontStyle.italic),
             textAlign: TextAlign.right,
           ),
         ],
@@ -354,7 +438,7 @@ class TimeTableItem extends StatelessWidget {
   }
 }
 
-/// AddScheduleBottomSheet: Form for adding a new schedule with text input for hours and minutes.
+/// AddScheduleBottomSheet: 스케줄 추가 폼 (요일 선택, 텍스트 입력으로 시간 입력, 밸리데이션 포함)
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
@@ -546,7 +630,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final newSchedule = ScheduleData(
-                      order: 0, // Will be updated later.
+                      order: 0, // order will be updated below.
                       startHour: int.parse(_startHourController.text),
                       startMinute: int.parse(_startMinuteController.text),
                       endHour: int.parse(_endHourController.text),
@@ -555,6 +639,14 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                       note: _noteController.text,
                       day: _selectedDay,
                     );
+                    // Retrieve current schedules for the selected day from the global DB-managed map.
+                    // For simplicity, we query the current globalScheduleMap.
+                    // (실제 DB 업데이트 후 재조회하는 것이 더 정확하겠지만, 여기서는 글로벌 변수를 사용)
+                    List<ScheduleData> currentSchedules =
+                    List<ScheduleData>.from(globalScheduleMap[_selectedDay] ?? []);
+                    newSchedule.order = currentSchedules.length + 1;
+                    currentSchedules.add(newSchedule);
+                    globalScheduleMap[_selectedDay] = currentSchedules;
                     // Insert new schedule into the database.
                     DatabaseHelper.instance.insertSchedule(newSchedule.toMap());
                     Navigator.of(context).pop();
