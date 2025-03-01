@@ -376,7 +376,7 @@ class TimeTableItem extends StatelessWidget {
     final Color customBackgroundColor = Colors.white;
     final Color customStartTimeColor = Colors.blue;
     final Color customSubjectColor = Colors.black;
-    final Color customEndTimeColor = Colors.grey;
+    final Color customEndTimeColor = Colors.blueAccent;
     final Color customNoteColor = Colors.orange;
 
     return Container(
@@ -420,7 +420,8 @@ class TimeTableItem extends StatelessWidget {
           // 종료시간
           Text(
             formatTime(endHour, endMinute),
-            style: TextStyle(fontSize: 14, color: customEndTimeColor),
+            style: TextStyle(fontSize: 18, color: customEndTimeColor,
+            fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 8),
           // 특이사항 (우측 정렬)
@@ -618,8 +619,8 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return '특이사항을 입력하세요.';
-                  return null;
+                  // if (value == null || value.isEmpty) return '특이사항을 입력하세요.';
+                  // return null;
                 },
               ),
               SizedBox(height: 16),
