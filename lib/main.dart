@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:numberpicker/numberpicker.dart';
 
 void main() {
   runApp(TimeTableApp());
@@ -54,7 +55,7 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// 메인 화면을 StatefulWidget으로 변경하여 스케줄 추가 시 setState로 갱신
+// 메인 화면을 StatefulWidget으로 변경하여 스케줄 추가 시 화면 갱신
 class TimeTableHome extends StatefulWidget {
   @override
   _TimeTableHomeState createState() => _TimeTableHomeState();
@@ -178,8 +179,6 @@ class DayScheduleView extends StatelessWidget {
 }
 
 /// 커스텀 스타일이 적용된 스케줄 항목 UI
-/// [시작시간] [과목] / [종료시간] / [특이사항]
-/// 커스텀 스타일이 적용된 스케줄 항목 UI
 /// [시작시간] [과목] / [종료시간] / [특이사항] (특이사항은 우측 정렬)
 class TimeTableItem extends StatelessWidget {
   final String startTime;
@@ -287,7 +286,6 @@ class TimeTableItem extends StatelessWidget {
   }
 }
 
-
 /// 스케줄 추가용 Bottom Sheet (요일 선택 포함)
 /// 입력 후 "저장" 버튼을 누르면 밸리데이션을 체크한 후 해당 요일의 scheduleMap에 저장됩니다.
 class AddScheduleBottomSheet extends StatefulWidget {
@@ -298,8 +296,10 @@ class AddScheduleBottomSheet extends StatefulWidget {
 class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _startTimeController = TextEditingController();
-  final TextEditingController _endTimeController = TextEditingController();
+  // 시간은 이제 정수로 저장 (1~24)
+  int _startTime = 1;
+  int _endTime = 1;
+
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
@@ -308,11 +308,91 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
 
   @override
   void dispose() {
-    _startTimeController.dispose();
-    _endTimeController.dispose();
     _subjectController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectStartTime(BuildContext context) async {
+    int currentValue = _startTime;
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("시작시간 선택"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return NumberPicker(
+                minValue: 1,
+                maxValue: 24,
+                value: currentValue,
+                onChanged: (value) {
+                  setState(() => currentValue = value);
+                },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _startTime = currentValue;
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text("선택"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _selectEndTime(BuildContext context) async {
+    int currentValue = _endTime;
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("종료시간 선택"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return NumberPicker(
+                minValue: 1,
+                maxValue: 24,
+                value: currentValue,
+                onChanged: (value) {
+                  setState(() => currentValue = value);
+                },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _endTime = currentValue;
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text("선택"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -362,54 +442,42 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 ),
               ),
               SizedBox(height: 16),
-              // 첫 번째 행: 시작시간과 종료시간 (나란히 배치)
+              // 첫 번째 행: 시작시간과 종료시간 (다이얼 선택)
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _startTimeController,
-                      decoration: InputDecoration(
-                        labelText: '시작시간',
-                        hintText: '예: 8',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => _selectStartTime(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: '시작시간',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          _startTime.toString().padLeft(2, '0') + ":00",
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '시작시간을 입력하세요.';
-                        }
-                        final hour = int.tryParse(value);
-                        if (hour == null || hour < 1 || hour > 24) {
-                          return '1부터 24 사이의 숫자를 입력하세요.';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                   SizedBox(width: 16),
                   Expanded(
-                    child: TextFormField(
-                      controller: _endTimeController,
-                      decoration: InputDecoration(
-                        labelText: '종료시간',
-                        hintText: '예: 13',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => _selectEndTime(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: '종료시간',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          _endTime.toString().padLeft(2, '0') + ":00",
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '종료시간을 입력하세요.';
-                        }
-                        final hour = int.tryParse(value);
-                        if (hour == null || hour < 1 || hour > 24) {
-                          return '1부터 24 사이의 숫자를 입력하세요.';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                 ],
@@ -458,8 +526,8 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final newSchedule = ScheduleData(
-                      start: _startTimeController.text,
-                      end: _endTimeController.text,
+                      start: _startTime.toString().padLeft(2, '0') + ":00",
+                      end: _endTime.toString().padLeft(2, '0') + ":00",
                       title: _subjectController.text,
                       note: _noteController.text,
                     );
