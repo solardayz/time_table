@@ -30,52 +30,111 @@ class TimeTableApp extends StatelessWidget {
               // 월요일 스케줄
               DayScheduleView(
                 schedules: [
-                  ScheduleData(start: '08:40', end: '13:40', title: '학교'),
-                  ScheduleData(start: '14:34', end: '15:15', title: '구몬학습'),
-                  ScheduleData(start: '16:00', end: '18:25', title: '늘푸른수학'),
+                  ScheduleData(
+                      start: '08:40',
+                      end: '13:40',
+                      title: '학교',
+                      note: '정규 수업'),
+                  ScheduleData(
+                      start: '14:34',
+                      end: '15:15',
+                      title: '구몬학습',
+                      note: '온라인 학습'),
+                  ScheduleData(
+                      start: '16:00',
+                      end: '18:25',
+                      title: '늘푸른수학',
+                      note: '보충 수업'),
                 ],
               ),
               // 화요일 스케줄 (랜덤 데이터)
               DayScheduleView(
                 schedules: [
-                  ScheduleData(start: '09:00', end: '10:30', title: '수학'),
-                  ScheduleData(start: '11:00', end: '12:00', title: '영어'),
-                  ScheduleData(start: '13:30', end: '15:00', title: '과학'),
+                  ScheduleData(
+                      start: '09:00',
+                      end: '10:30',
+                      title: '수학',
+                      note: '문제 풀이'),
+                  ScheduleData(
+                      start: '11:00',
+                      end: '12:00',
+                      title: '영어',
+                      note: '독해'),
+                  ScheduleData(
+                      start: '13:30',
+                      end: '15:00',
+                      title: '과학',
+                      note: '실험'),
                 ],
               ),
               // 수요일 스케줄 (랜덤 데이터)
               DayScheduleView(
                 schedules: [
-                  ScheduleData(start: '08:50', end: '10:20', title: '음악'),
-                  ScheduleData(start: '10:30', end: '12:00', title: '미술'),
-                  ScheduleData(start: '13:00', end: '14:30', title: '체육'),
+                  ScheduleData(
+                      start: '08:50',
+                      end: '10:20',
+                      title: '음악',
+                      note: '연습'),
+                  ScheduleData(
+                      start: '10:30',
+                      end: '12:00',
+                      title: '미술',
+                      note: '그림'),
+                  ScheduleData(
+                      start: '13:00',
+                      end: '14:30',
+                      title: '체육',
+                      note: '운동'),
                 ],
               ),
               // 목요일 스케줄 (랜덤 데이터)
               DayScheduleView(
                 schedules: [
-                  ScheduleData(start: '09:10', end: '10:50', title: '국어'),
-                  ScheduleData(start: '11:00', end: '12:30', title: '역사'),
-                  ScheduleData(start: '13:20', end: '15:00', title: '사회'),
+                  ScheduleData(
+                      start: '09:10',
+                      end: '10:50',
+                      title: '국어',
+                      note: '독서'),
+                  ScheduleData(
+                      start: '11:00',
+                      end: '12:30',
+                      title: '역사',
+                      note: '토론'),
+                  ScheduleData(
+                      start: '13:20',
+                      end: '15:00',
+                      title: '사회',
+                      note: '프로젝트'),
                 ],
               ),
               // 금요일 스케줄 (랜덤 데이터)
               DayScheduleView(
                 schedules: [
-                  ScheduleData(start: '08:30', end: '10:00', title: '수학'),
-                  ScheduleData(start: '10:10', end: '11:40', title: '영어'),
-                  ScheduleData(start: '12:00', end: '13:30', title: '과학'),
+                  ScheduleData(
+                      start: '08:30',
+                      end: '10:00',
+                      title: '수학',
+                      note: '복습'),
+                  ScheduleData(
+                      start: '10:10',
+                      end: '11:40',
+                      title: '영어',
+                      note: '어휘'),
+                  ScheduleData(
+                      start: '12:00',
+                      end: '13:30',
+                      title: '과학',
+                      note: '퀴즈'),
                 ],
               ),
             ],
           ),
-          // Builder를 사용해 올바른 context를 얻음
+          // Builder로 올바른 context 확보
           floatingActionButton: Builder(
             builder: (context) {
               return FloatingActionButton(
                 child: Icon(Icons.add),
                 onPressed: () {
-                  // FAB 클릭 시 Bottom Sheet 표시
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
@@ -93,16 +152,18 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// 스케줄 데이터를 위한 모델 클래스
+// 스케줄 데이터를 위한 모델 (특이사항 필드 포함)
 class ScheduleData {
   final String start;
   final String end;
   final String title;
+  final String note;
 
   ScheduleData({
     required this.start,
     required this.end,
     required this.title,
+    this.note = '',
   });
 }
 
@@ -123,93 +184,109 @@ class DayScheduleView extends StatelessWidget {
           startTime: schedule.start,
           title: schedule.title,
           endTime: schedule.end,
+          note: schedule.note,
         );
       },
     );
   }
 }
 
-/// 하나의 스케줄 항목 UI
+/// 커스텀 스타일이 적용된 스케줄 항목 UI
+/// 디자인 예시:
 /// --------------------------------------
-/// 08:40.     학교
-/// 13:40
-///          13:40 전후 하교
+/// [시작시간] [과목]
+/// [종료시간]
+/// [특이사항]
 /// --------------------------------------
 class TimeTableItem extends StatelessWidget {
   final String startTime;
   final String title;
   final String endTime;
+  final String note;
 
   TimeTableItem({
     required this.startTime,
     required this.title,
     required this.endTime,
+    required this.note,
   });
 
   @override
   Widget build(BuildContext context) {
+    // 커스텀 컬러 정의
+    final Color customBorderColor = Colors.deepPurpleAccent;
+    final Color customBackgroundColor = Colors.white;
+    final Color customStartTimeColor = Colors.blue;
+    final Color customSubjectColor = Colors.black;
+    final Color customEndTimeColor = Colors.grey;
+    final Color customNoteColor = Colors.orange;
+
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey), // 외곽선 효과
-        borderRadius: BorderRadius.circular(8.0),
+        color: customBackgroundColor,
+        border: Border.all(color: customBorderColor, width: 2),
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: customBorderColor.withOpacity(0.2),
+            offset: Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 상단 구분선
-          Divider(color: Colors.grey, thickness: 1),
-          // 첫 번째 행: 시작 시간과 제목
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Row(
-              children: [
-                Text(
-                  "$startTime.",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          // 시작시간과 과목 (둘 다 크게 표시)
+          Row(
+            children: [
+              Text(
+                "$startTime.",
+                style: TextStyle(
+                  fontSize: 22,
+                  color: customStartTimeColor,
+                  fontWeight: FontWeight.bold,
                 ),
-                SizedBox(width: 8.0),
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 22,
+                  color: customSubjectColor,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          // 종료시간 (작게 표시)
+          Text(
+            endTime,
+            style: TextStyle(
+              fontSize: 14,
+              color: customEndTimeColor,
             ),
           ),
-          // 두 번째 행: 종료 시간 (왼쪽 정렬)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-            child: Row(
-              children: [
-                Text(
-                  endTime,
-                  style: TextStyle(fontSize: 16),
-                ),
-              ],
+          SizedBox(height: 8),
+          // 특이사항 (이탤릭)
+          Text(
+            note,
+            style: TextStyle(
+              fontSize: 16,
+              color: customNoteColor,
+              fontStyle: FontStyle.italic,
             ),
           ),
-          // 세 번째 행: 종료 시간 + "전후 하교" (오른쪽 정렬)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  "$endTime 전후 하교",
-                  style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-                ),
-              ],
-            ),
-          ),
-          // 하단 구분선
-          Divider(color: Colors.grey, thickness: 1),
         ],
       ),
     );
   }
 }
 
-/// Bottom Sheet에 표시할 스케줄 추가 폼 위젯 (요일 필드 추가)
+/// 스케줄 추가용 Bottom Sheet (요일 선택 포함)
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
@@ -221,7 +298,6 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  // 추가: 요일 선택을 위한 변수 (기본값은 '월')
   String _selectedDay = '월';
 
   @override
@@ -246,7 +322,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 요일 선택 필드 (드롭다운)
+            // 요일 선택
             DropdownButtonFormField<String>(
               value: _selectedDay,
               items: <String>['월', '화', '수', '목', '금']
@@ -307,10 +383,9 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
               ),
             ),
             SizedBox(height: 20),
-            // 저장 버튼
+            // 저장 버튼 (저장 로직은 필요에 따라 추가)
             ElevatedButton(
               onPressed: () {
-                // TODO: 저장 로직 구현 (예: 선택한 요일에 해당하는 스케줄 추가)
                 Navigator.of(context).pop();
               },
               child: Text('저장'),
