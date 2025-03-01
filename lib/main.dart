@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:numberpicker/numberpicker.dart';
 
 void main() {
   runApp(TimeTableApp());
@@ -7,40 +8,40 @@ void main() {
 // 전역에 요일 목록 선언
 const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 전역에 요일별 스케줄 데이터를 Map으로 선언
+// 전역에 요일별 스케줄 데이터를 Map으로 선언 (각 항목에 order 추가)
 Map<String, List<ScheduleData>> scheduleMap = {
   '월': [
-    ScheduleData(start: '08:40', end: '13:40', title: '학교', note: '정규 수업'),
-    ScheduleData(start: '14:34', end: '15:15', title: '구몬학습', note: '온라인 학습'),
-    ScheduleData(start: '16:00', end: '18:25', title: '늘푸른수학', note: '보충 수업'),
+    ScheduleData(order: 1, start: '08:40', end: '13:40', title: '학교', note: '정규 수업'),
+    ScheduleData(order: 2, start: '14:34', end: '15:15', title: '구몬학습', note: '온라인 학습'),
+    ScheduleData(order: 3, start: '16:00', end: '18:25', title: '늘푸른수학', note: '보충 수업'),
   ],
   '화': [
-    ScheduleData(start: '09:00', end: '10:30', title: '수학', note: '문제 풀이'),
-    ScheduleData(start: '11:00', end: '12:00', title: '영어', note: '독해'),
-    ScheduleData(start: '13:30', end: '15:00', title: '과학', note: '실험'),
+    ScheduleData(order: 1, start: '09:00', end: '10:30', title: '수학', note: '문제 풀이'),
+    ScheduleData(order: 2, start: '11:00', end: '12:00', title: '영어', note: '독해'),
+    ScheduleData(order: 3, start: '13:30', end: '15:00', title: '과학', note: '실험'),
   ],
   '수': [
-    ScheduleData(start: '08:50', end: '10:20', title: '음악', note: '연습'),
-    ScheduleData(start: '10:30', end: '12:00', title: '미술', note: '그림'),
-    ScheduleData(start: '13:00', end: '14:30', title: '체육', note: '운동'),
+    ScheduleData(order: 1, start: '08:50', end: '10:20', title: '음악', note: '연습'),
+    ScheduleData(order: 2, start: '10:30', end: '12:00', title: '미술', note: '그림'),
+    ScheduleData(order: 3, start: '13:00', end: '14:30', title: '체육', note: '운동'),
   ],
   '목': [
-    ScheduleData(start: '09:10', end: '10:50', title: '국어', note: '독서'),
-    ScheduleData(start: '11:00', end: '12:30', title: '역사', note: '토론'),
-    ScheduleData(start: '13:20', end: '15:00', title: '사회', note: '프로젝트'),
+    ScheduleData(order: 1, start: '09:10', end: '10:50', title: '국어', note: '독서'),
+    ScheduleData(order: 2, start: '11:00', end: '12:30', title: '역사', note: '토론'),
+    ScheduleData(order: 3, start: '13:20', end: '15:00', title: '사회', note: '프로젝트'),
   ],
   '금': [
-    ScheduleData(start: '08:30', end: '10:00', title: '수학', note: '복습'),
-    ScheduleData(start: '10:10', end: '11:40', title: '영어', note: '어휘'),
-    ScheduleData(start: '12:00', end: '13:30', title: '과학', note: '퀴즈'),
+    ScheduleData(order: 1, start: '08:30', end: '10:00', title: '수학', note: '복습'),
+    ScheduleData(order: 2, start: '10:10', end: '11:40', title: '영어', note: '어휘'),
+    ScheduleData(order: 3, start: '12:00', end: '13:30', title: '과학', note: '퀴즈'),
   ],
   '토': [
-    ScheduleData(start: '10:00', end: '12:00', title: '미술', note: '자유 활동'),
-    ScheduleData(start: '13:00', end: '15:00', title: '체육', note: '축구'),
+    ScheduleData(order: 1, start: '10:00', end: '12:00', title: '미술', note: '자유 활동'),
+    ScheduleData(order: 2, start: '13:00', end: '15:00', title: '체육', note: '축구'),
   ],
   '일': [
-    ScheduleData(start: '11:00', end: '12:30', title: '독서', note: '자기계발'),
-    ScheduleData(start: '14:00', end: '16:00', title: '영화', note: '가족과 함께'),
+    ScheduleData(order: 1, start: '11:00', end: '12:30', title: '독서', note: '자기계발'),
+    ScheduleData(order: 2, start: '14:00', end: '16:00', title: '영화', note: '가족과 함께'),
   ],
 };
 
@@ -54,7 +55,7 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// 메인 화면을 StatefulWidget으로 변경하여 스케줄 추가 시 setState로 갱신
+// 메인 화면 (StatefulWidget으로 스케줄 추가 및 순서 변경 시 화면 갱신)
 class TimeTableHome extends StatefulWidget {
   @override
   _TimeTableHomeState createState() => _TimeTableHomeState();
@@ -70,13 +71,11 @@ class _TimeTableHomeState extends State<TimeTableHome> {
           title: Text('타임테이블'),
           bottom: AnimatedTabBar(),
         ),
-        // 각 요일별 스케줄을 동적으로 표시
+        // 각 요일별 스케줄을 동적으로 표시 (드래그 앤 드롭 지원)
         body: TabBarView(
-          children: days
-              .map((day) => DayScheduleView(schedules: scheduleMap[day] ?? []))
-              .toList(),
+          children: days.map((day) => DayScheduleView(day: day)).toList(),
         ),
-        // FAB를 누르면 Bottom Sheet가 뜨고, 닫힌 후 setState를 호출하여 화면 갱신
+        // FAB를 누르면 Bottom Sheet가 뜨고, 닫힌 후 setState 호출하여 화면 갱신
         floatingActionButton: Builder(
           builder: (context) {
             return FloatingActionButton(
@@ -88,8 +87,8 @@ class _TimeTableHomeState extends State<TimeTableHome> {
                   builder: (BuildContext context) {
                     return AddScheduleBottomSheet();
                   },
-                ).then((value) {
-                  setState(() {}); // 저장 후 화면 갱신
+                ).then((_) {
+                  setState(() {});
                 });
               },
             );
@@ -101,7 +100,6 @@ class _TimeTableHomeState extends State<TimeTableHome> {
 }
 
 /// 애니메이션 효과가 적용된 TabBar 위젯
-/// 선택된 탭은 글씨 크기가 크게, 미선택 탭은 작게 표시됩니다.
 class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(48.0);
@@ -139,14 +137,16 @@ class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// 스케줄 데이터를 위한 모델 (특이사항 포함)
+/// 스케줄 데이터를 위한 모델 (order 필드 추가)
 class ScheduleData {
+  int order; // 순서값 (드래그 앤 드롭 시 업데이트)
   final String start;
   final String end;
   final String title;
   final String note;
 
   ScheduleData({
+    required this.order,
     required this.start,
     required this.end,
     required this.title,
@@ -154,33 +154,64 @@ class ScheduleData {
   });
 }
 
-/// 각 요일의 스케줄을 ListView로 보여주는 위젯
-class DayScheduleView extends StatelessWidget {
-  final List<ScheduleData> schedules;
-  DayScheduleView({required this.schedules});
+/// 각 요일의 스케줄을 ReorderableListView로 보여주는 위젯
+class DayScheduleView extends StatefulWidget {
+  final String day;
+  DayScheduleView({required this.day});
+  @override
+  _DayScheduleViewState createState() => _DayScheduleViewState();
+}
+
+class _DayScheduleViewState extends State<DayScheduleView> {
+  late List<ScheduleData> _schedules;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSchedules();
+  }
+
+  void _loadSchedules() {
+    _schedules = List<ScheduleData>.from(scheduleMap[widget.day] ?? []);
+    _schedules.sort((a, b) => a.order.compareTo(b.order));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return ReorderableListView(
       padding: EdgeInsets.all(16.0),
-      itemCount: schedules.length,
-      itemBuilder: (context, index) {
-        final schedule = schedules[index];
-        return TimeTableItem(
-          startTime: schedule.start,
-          title: schedule.title,
-          endTime: schedule.end,
-          note: schedule.note,
-        );
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (newIndex > oldIndex) {
+            newIndex -= 1;
+          }
+          final ScheduleData item = _schedules.removeAt(oldIndex);
+          _schedules.insert(newIndex, item);
+          // 업데이트된 순서 반영: 1부터 시작하는 순서로 재할당
+          for (int i = 0; i < _schedules.length; i++) {
+            _schedules[i].order = i + 1;
+          }
+          // 전역 scheduleMap에도 반영
+          scheduleMap[widget.day] = _schedules;
+        });
       },
+      children: [
+        for (int index = 0; index < _schedules.length; index++)
+          Container(
+            key: ValueKey(_schedules[index].order),
+            child: TimeTableItem(
+              startTime: _schedules[index].start,
+              title: _schedules[index].title,
+              endTime: _schedules[index].end,
+              note: _schedules[index].note,
+            ),
+          ),
+      ],
     );
   }
 }
 
-/// 커스텀 스타일이 적용된 스케줄 항목 UI
-/// [시작시간] [과목] / [종료시간] / [특이사항]
-/// 커스텀 스타일이 적용된 스케줄 항목 UI
-/// [시작시간] [과목] / [종료시간] / [특이사항] (특이사항은 우측 정렬)
+/// 스케줄 항목 UI (시간 포맷 "00:00", 특이사항 우측 정렬)
 class TimeTableItem extends StatelessWidget {
   final String startTime;
   final String title;
@@ -194,32 +225,30 @@ class TimeTableItem extends StatelessWidget {
     required this.note,
   });
 
+  String formatTime(String time) {
+    if (time.contains(":")) {
+      List<String> parts = time.split(":");
+      if (parts.length == 2) {
+        String hour = parts[0].padLeft(2, '0');
+        String minute = parts[1].padLeft(2, '0');
+        return "$hour:$minute";
+      }
+      return time;
+    } else {
+      final int? hour = int.tryParse(time);
+      if (hour == null) return time;
+      return hour.toString().padLeft(2, '0') + ":00";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 커스텀 컬러 정의
     final Color customBorderColor = Colors.deepPurpleAccent;
     final Color customBackgroundColor = Colors.white;
     final Color customStartTimeColor = Colors.blue;
     final Color customSubjectColor = Colors.black;
     final Color customEndTimeColor = Colors.grey;
     final Color customNoteColor = Colors.orange;
-
-    // 시간을 "00:00" 형태로 포맷하는 헬퍼 함수
-    String formatTime(String time) {
-      if (time.contains(":")) {
-        List<String> parts = time.split(":");
-        if (parts.length == 2) {
-          String hour = parts[0].padLeft(2, '0');
-          String minute = parts[1].padLeft(2, '0');
-          return "$hour:$minute";
-        }
-        return time;
-      } else {
-        final int? hour = int.tryParse(time);
-        if (hour == null) return time;
-        return hour.toString().padLeft(2, '0') + ":00";
-      }
-    }
 
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8.0),
@@ -287,9 +316,7 @@ class TimeTableItem extends StatelessWidget {
   }
 }
 
-
-/// 스케줄 추가용 Bottom Sheet (요일 선택 포함)
-/// 입력 후 "저장" 버튼을 누르면 밸리데이션을 체크한 후 해당 요일의 scheduleMap에 저장됩니다.
+/// 스케줄 추가용 Bottom Sheet (요일 선택, 다이얼로 시간 선택, 밸리데이션 포함)
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
@@ -298,21 +325,97 @@ class AddScheduleBottomSheet extends StatefulWidget {
 class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _startTimeController = TextEditingController();
-  final TextEditingController _endTimeController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  // 기본 선택 요일은 전역 days 리스트의 첫 번째
+  int _startTime = 1;
+  int _endTime = 1;
+
   String _selectedDay = days.first;
 
   @override
   void dispose() {
-    _startTimeController.dispose();
-    _endTimeController.dispose();
     _subjectController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectStartTime(BuildContext context) async {
+    int currentValue = _startTime;
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("시작시간 선택"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return NumberPicker(
+                minValue: 1,
+                maxValue: 24,
+                value: currentValue,
+                onChanged: (value) {
+                  setState(() => currentValue = value);
+                },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _startTime = currentValue;
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text("선택"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _selectEndTime(BuildContext context) async {
+    int currentValue = _endTime;
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("종료시간 선택"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return NumberPicker(
+                minValue: 1,
+                maxValue: 24,
+                value: currentValue,
+                onChanged: (value) {
+                  setState(() => currentValue = value);
+                },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _endTime = currentValue;
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text("선택"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -330,7 +433,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 상단 드래그 핸들 (작은 회색 막대)
+              // 상단 드래그 핸들
               Container(
                 width: 40,
                 height: 4,
@@ -362,60 +465,48 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 ),
               ),
               SizedBox(height: 16),
-              // 첫 번째 행: 시작시간과 종료시간 (나란히 배치)
+              // 시작시간과 종료시간 Row (다이얼 선택)
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _startTimeController,
-                      decoration: InputDecoration(
-                        labelText: '시작시간',
-                        hintText: '예: 8',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => _selectStartTime(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: '시작시간',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          _startTime.toString().padLeft(2, '0') + ":00",
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '시작시간을 입력하세요.';
-                        }
-                        final hour = int.tryParse(value);
-                        if (hour == null || hour < 1 || hour > 24) {
-                          return '1부터 24 사이의 숫자를 입력하세요.';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                   SizedBox(width: 16),
                   Expanded(
-                    child: TextFormField(
-                      controller: _endTimeController,
-                      decoration: InputDecoration(
-                        labelText: '종료시간',
-                        hintText: '예: 13',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => _selectEndTime(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: '종료시간',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          _endTime.toString().padLeft(2, '0') + ":00",
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '종료시간을 입력하세요.';
-                        }
-                        final hour = int.tryParse(value);
-                        if (hour == null || hour < 1 || hour > 24) {
-                          return '1부터 24 사이의 숫자를 입력하세요.';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 16),
-              // 두 번째 행: 과목
+              // 과목 입력
               TextFormField(
                 controller: _subjectController,
                 decoration: InputDecoration(
@@ -433,7 +524,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 },
               ),
               SizedBox(height: 16),
-              // 세 번째 행: 특이사항
+              // 특이사항 입력
               TextFormField(
                 controller: _noteController,
                 decoration: InputDecoration(
@@ -458,14 +549,18 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final newSchedule = ScheduleData(
-                      start: _startTimeController.text,
-                      end: _endTimeController.text,
+                      order: 0, // 새 항목은 순서를 나중에 ReorderableListView에서 재정렬 시 업데이트
+                      start: _startTime.toString().padLeft(2, '0') + ":00",
+                      end: _endTime.toString().padLeft(2, '0') + ":00",
                       title: _subjectController.text,
                       note: _noteController.text,
                     );
                     if (scheduleMap[_selectedDay] != null) {
+                      // 새 항목의 order는 현재 리스트 길이 + 1
+                      newSchedule.order = scheduleMap[_selectedDay]!.length + 1;
                       scheduleMap[_selectedDay]!.add(newSchedule);
                     } else {
+                      newSchedule.order = 1;
                       scheduleMap[_selectedDay] = [newSchedule];
                     }
                     Navigator.of(context).pop();
