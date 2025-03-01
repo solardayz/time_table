@@ -400,7 +400,7 @@ class TimeTableItem extends StatelessWidget {
           Row(
             children: [
               Text(
-                "${formatTime(startHour, startMinute)}.",
+                "${formatTime(startHour, startMinute)}",
                 style: TextStyle(
                     fontSize: 22,
                     color: customStartTimeColor,
