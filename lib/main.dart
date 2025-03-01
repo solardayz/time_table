@@ -69,6 +69,24 @@ class TimeTableApp extends StatelessWidget {
               ),
             ],
           ),
+          // Builder를 사용해 올바른 context를 얻음
+          floatingActionButton: Builder(
+            builder: (context) {
+              return FloatingActionButton(
+                child: Icon(Icons.add),
+                onPressed: () {
+                  // FAB 클릭 시 Bottom Sheet 표시
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (BuildContext context) {
+                      return AddScheduleBottomSheet();
+                    },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -112,7 +130,6 @@ class DayScheduleView extends StatelessWidget {
 }
 
 /// 하나의 스케줄 항목 UI
-/// 디자인:
 /// --------------------------------------
 /// 08:40.     학교
 /// 13:40
@@ -187,6 +204,120 @@ class TimeTableItem extends StatelessWidget {
           // 하단 구분선
           Divider(color: Colors.grey, thickness: 1),
         ],
+      ),
+    );
+  }
+}
+
+/// Bottom Sheet에 표시할 스케줄 추가 폼 위젯 (요일 필드 추가)
+class AddScheduleBottomSheet extends StatefulWidget {
+  @override
+  _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
+}
+
+class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
+  final TextEditingController _startTimeController = TextEditingController();
+  final TextEditingController _endTimeController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  // 추가: 요일 선택을 위한 변수 (기본값은 '월')
+  String _selectedDay = '월';
+
+  @override
+  void dispose() {
+    _startTimeController.dispose();
+    _endTimeController.dispose();
+    _subjectController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 요일 선택 필드 (드롭다운)
+            DropdownButtonFormField<String>(
+              value: _selectedDay,
+              items: <String>['월', '화', '수', '목', '금']
+                  .map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedDay = newValue!;
+                });
+              },
+              decoration: InputDecoration(
+                labelText: '요일',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            // 시작시간 입력
+            TextField(
+              controller: _startTimeController,
+              decoration: InputDecoration(
+                labelText: '시작시간',
+                hintText: '예: 08:40',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            // 종료시간 입력
+            TextField(
+              controller: _endTimeController,
+              decoration: InputDecoration(
+                labelText: '종료시간',
+                hintText: '예: 13:40',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            // 과목 입력
+            TextField(
+              controller: _subjectController,
+              decoration: InputDecoration(
+                labelText: '과목',
+                hintText: '예: 학교',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            // 특이사항 입력
+            TextField(
+              controller: _noteController,
+              decoration: InputDecoration(
+                labelText: '특이사항',
+                hintText: '예: 추가 메모',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+            // 저장 버튼
+            ElevatedButton(
+              onPressed: () {
+                // TODO: 저장 로직 구현 (예: 선택한 요일에 해당하는 스케줄 추가)
+                Navigator.of(context).pop();
+              },
+              child: Text('저장'),
+            ),
+            SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
