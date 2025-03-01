@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:numberpicker/numberpicker.dart';
 
@@ -76,7 +76,7 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'timetable.db');
+    String path = p.join(await getDatabasesPath(), 'timetable.db');
     return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
@@ -115,6 +115,15 @@ class DatabaseHelper {
     Database db = await instance.database;
     return await db.query('user', orderBy: 'id ASC');
   }
+
+  Future<int> deleteUser(int id) async {
+    Database db = await instance.database;
+    // 먼저 해당 사용자의 시간표 데이터를 모두 삭제
+    await db.delete('schedule', where: 'userId = ?', whereArgs: [id]);
+    // 그 후에 사용자를 삭제
+    return await db.delete('user', where: 'id = ?', whereArgs: [id]);
+  }
+
 
   Future<int> insertSchedule(Map<String, dynamic> row) async {
     Database db = await instance.database;
@@ -264,6 +273,30 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
     });
   }
 
+  void _deleteUser(User user) async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("삭제하시겠습니까?"),
+        content: Text("해당 사용자의 시간표도 삭제되며 복구 불가능합니다. 그래도 삭제하시겠어요?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text("아니요")),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text("예")),
+        ],
+      ),
+    );
+    if (confirm && user.id != null) {
+      await DatabaseHelper.instance.deleteUser(user.id!);
+      setState(() {
+        _usersFuture = _fetchUsers();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -323,7 +356,7 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                   if (snapshot.hasError)
                     return Center(child: Text("Error: ${snapshot.error}"));
                   List<User> users = snapshot.data ?? [];
-                  if(users.isEmpty){
+                  if (users.isEmpty) {
                     return Center(child: Text("등록된 사용자가 없습니다."));
                   }
                   return ListView.separated(
@@ -342,7 +375,17 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                             user.name,
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          trailing: Icon(Icons.arrow_forward_ios, size: 18),
+                          // 우측에 삭제 버튼과 선택 아이콘 함께 배치
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteUser(user),
+                              ),
+                              Icon(Icons.arrow_forward_ios, size: 18),
+                            ],
+                          ),
                           onTap: () {
                             // 사용자를 선택하면 해당 사용자의 시간표 화면으로 이동
                             Navigator.push(
@@ -365,6 +408,7 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
     );
   }
 }
+
 
 
 // ----------------------
@@ -491,43 +535,41 @@ class _DayScheduleViewForUserState extends State<DayScheduleViewForUser> {
             for (int i = 0; i < schedules.length; i++)
               Container(
                 key: ValueKey(schedules[i].id),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TimeTableItem(
-                        startHour: schedules[i].startHour,
-                        startMinute: schedules[i].startMinute,
-                        title: schedules[i].title,
-                        endHour: schedules[i].endHour,
-                        endMinute: schedules[i].endMinute,
-                        note: schedules[i].note,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async {
-                        bool confirm = await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text("삭제하시겠습니까?"),
-                            content: Text("해당 스케줄을 삭제하시겠습니까?"),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text("아니요")),
-                              TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text("예")),
-                            ],
+                child: TimeTableItem(
+                  startHour: schedules[i].startHour,
+                  startMinute: schedules[i].startMinute,
+                  title: schedules[i].title,
+                  endHour: schedules[i].endHour,
+                  endMinute: schedules[i].endMinute,
+                  note: schedules[i].note,
+                  onDelete: () async {
+                    bool confirm = await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text("삭제하시겠습니까?"),
+                        content: Text("해당 스케줄을 삭제하시겠습니까?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text("아니요"),
                           ),
-                        );
-                        if (confirm && schedules[i].id != null) {
-                          await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
-                          setState(() {});
-                        }
-                      },
-                    ),
-                  ],
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text("예"),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm && schedules[i].id != null) {
+                      await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
+                      setState(() {});
+                    }
+                  },
                 ),
               ),
           ],
         );
+
       },
     );
   }
@@ -543,6 +585,7 @@ class TimeTableItem extends StatelessWidget {
   final int endHour;
   final int endMinute;
   final String note;
+  final VoidCallback? onDelete;
 
   TimeTableItem({
     required this.startHour,
@@ -551,6 +594,7 @@ class TimeTableItem extends StatelessWidget {
     required this.endHour,
     required this.endMinute,
     required this.note,
+    this.onDelete,
   });
 
   String formatTime(int hour, int minute) {
@@ -571,7 +615,7 @@ class TimeTableItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 첫 번째 행: 시작시간, 과목, 우측 삭제 버튼은 외부에서 처리
+            // 첫 번째 행: 시작시간, 과목, 그리고 우측 삭제 버튼
             Row(
               children: [
                 Text(
@@ -593,6 +637,11 @@ class TimeTableItem extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onDelete != null)
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: onDelete,
+                  ),
               ],
             ),
             SizedBox(height: 8),
@@ -624,6 +673,7 @@ class TimeTableItem extends StatelessWidget {
     );
   }
 }
+
 
 // ----------------------
 // AddScheduleBottomSheet: 스케줄 추가 폼 (요일 선택, 텍스트 입력으로 시간 입력, 유효성 검사 포함)
