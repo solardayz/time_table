@@ -4,132 +4,66 @@ void main() {
   runApp(TimeTableApp());
 }
 
+// 전역에 요일 목록을 선언
+const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
+
+// 전역에 요일별 스케줄 데이터를 선언 (Map 형태)
+Map<String, List<ScheduleData>> scheduleMap = {
+  '월': [
+    ScheduleData(start: '08:40', end: '13:40', title: '학교', note: '정규 수업'),
+    ScheduleData(start: '14:34', end: '15:15', title: '구몬학습', note: '온라인 학습'),
+    ScheduleData(start: '16:00', end: '18:25', title: '늘푸른수학', note: '보충 수업'),
+  ],
+  '화': [
+    ScheduleData(start: '09:00', end: '10:30', title: '수학', note: '문제 풀이'),
+    ScheduleData(start: '11:00', end: '12:00', title: '영어', note: '독해'),
+    ScheduleData(start: '13:30', end: '15:00', title: '과학', note: '실험'),
+  ],
+  '수': [
+    ScheduleData(start: '08:50', end: '10:20', title: '음악', note: '연습'),
+    ScheduleData(start: '10:30', end: '12:00', title: '미술', note: '그림'),
+    ScheduleData(start: '13:00', end: '14:30', title: '체육', note: '운동'),
+  ],
+  '목': [
+    ScheduleData(start: '09:10', end: '10:50', title: '국어', note: '독서'),
+    ScheduleData(start: '11:00', end: '12:30', title: '역사', note: '토론'),
+    ScheduleData(start: '13:20', end: '15:00', title: '사회', note: '프로젝트'),
+  ],
+  '금': [
+    ScheduleData(start: '08:30', end: '10:00', title: '수학', note: '복습'),
+    ScheduleData(start: '10:10', end: '11:40', title: '영어', note: '어휘'),
+    ScheduleData(start: '12:00', end: '13:30', title: '과학', note: '퀴즈'),
+  ],
+  '토': [
+    ScheduleData(start: '10:00', end: '12:00', title: '미술', note: '자유 활동'),
+    ScheduleData(start: '13:00', end: '15:00', title: '체육', note: '축구'),
+  ],
+  '일': [
+    ScheduleData(start: '11:00', end: '12:30', title: '독서', note: '자기계발'),
+    ScheduleData(start: '14:00', end: '16:00', title: '영화', note: '가족과 함께'),
+  ],
+};
+
 class TimeTableApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '타임테이블 앱',
       home: DefaultTabController(
-        length: 5, // 월, 화, 수, 목, 금
+        length: days.length,
         child: Scaffold(
           appBar: AppBar(
             title: Text('타임테이블'),
-            bottom: TabBar(
-              isScrollable: true,
-              tabs: [
-                Tab(text: '월'),
-                Tab(text: '화'),
-                Tab(text: '수'),
-                Tab(text: '목'),
-                Tab(text: '금'),
-              ],
-            ),
+            bottom: AnimatedTabBar(),
           ),
+          // TabBarView에 동적으로 데이터를 넣음
           body: TabBarView(
-            children: [
-              // 월요일 스케줄
-              DayScheduleView(
-                schedules: [
-                  ScheduleData(
-                      start: '08:40',
-                      end: '13:40',
-                      title: '학교',
-                      note: '정규 수업'),
-                  ScheduleData(
-                      start: '14:34',
-                      end: '15:15',
-                      title: '구몬학습',
-                      note: '온라인 학습'),
-                  ScheduleData(
-                      start: '16:00',
-                      end: '18:25',
-                      title: '늘푸른수학',
-                      note: '보충 수업'),
-                ],
-              ),
-              // 화요일 스케줄 (랜덤 데이터)
-              DayScheduleView(
-                schedules: [
-                  ScheduleData(
-                      start: '09:00',
-                      end: '10:30',
-                      title: '수학',
-                      note: '문제 풀이'),
-                  ScheduleData(
-                      start: '11:00',
-                      end: '12:00',
-                      title: '영어',
-                      note: '독해'),
-                  ScheduleData(
-                      start: '13:30',
-                      end: '15:00',
-                      title: '과학',
-                      note: '실험'),
-                ],
-              ),
-              // 수요일 스케줄 (랜덤 데이터)
-              DayScheduleView(
-                schedules: [
-                  ScheduleData(
-                      start: '08:50',
-                      end: '10:20',
-                      title: '음악',
-                      note: '연습'),
-                  ScheduleData(
-                      start: '10:30',
-                      end: '12:00',
-                      title: '미술',
-                      note: '그림'),
-                  ScheduleData(
-                      start: '13:00',
-                      end: '14:30',
-                      title: '체육',
-                      note: '운동'),
-                ],
-              ),
-              // 목요일 스케줄 (랜덤 데이터)
-              DayScheduleView(
-                schedules: [
-                  ScheduleData(
-                      start: '09:10',
-                      end: '10:50',
-                      title: '국어',
-                      note: '독서'),
-                  ScheduleData(
-                      start: '11:00',
-                      end: '12:30',
-                      title: '역사',
-                      note: '토론'),
-                  ScheduleData(
-                      start: '13:20',
-                      end: '15:00',
-                      title: '사회',
-                      note: '프로젝트'),
-                ],
-              ),
-              // 금요일 스케줄 (랜덤 데이터)
-              DayScheduleView(
-                schedules: [
-                  ScheduleData(
-                      start: '08:30',
-                      end: '10:00',
-                      title: '수학',
-                      note: '복습'),
-                  ScheduleData(
-                      start: '10:10',
-                      end: '11:40',
-                      title: '영어',
-                      note: '어휘'),
-                  ScheduleData(
-                      start: '12:00',
-                      end: '13:30',
-                      title: '과학',
-                      note: '퀴즈'),
-                ],
-              ),
-            ],
+            children: days
+                .map((day) =>
+                DayScheduleView(schedules: scheduleMap[day] ?? []))
+                .toList(),
           ),
-          // Builder로 올바른 context 확보
+          // FAB를 눌렀을 때 Bottom Sheet 호출
           floatingActionButton: Builder(
             builder: (context) {
               return FloatingActionButton(
@@ -152,7 +86,46 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// 스케줄 데이터를 위한 모델 (특이사항 필드 포함)
+/// 애니메이션 효과가 적용된 TabBar 위젯
+/// 기본 탭은 작게, 선택된 탭은 크게 표시합니다.
+class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
+  @override
+  Size get preferredSize => Size.fromHeight(48.0);
+  @override
+  Widget build(BuildContext context) {
+    final TabController tabController = DefaultTabController.of(context)!;
+    return AnimatedBuilder(
+      animation: tabController,
+      builder: (context, _) {
+        return TabBar(
+          indicatorColor: Colors.red,
+          tabs: List.generate(days.length, (index) {
+            bool selected = tabController.index == index;
+            return Tab(
+              child: AnimatedDefaultTextStyle(
+                duration: Duration(milliseconds: 200),
+                style: selected
+                    ? TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                )
+                    : TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.normal,
+                  color: Colors.black54,
+                ),
+                child: Text(days[index]),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// 스케줄 데이터를 위한 모델 (특이사항 포함)
 class ScheduleData {
   final String start;
   final String end;
@@ -192,12 +165,9 @@ class DayScheduleView extends StatelessWidget {
 }
 
 /// 커스텀 스타일이 적용된 스케줄 항목 UI
-/// 디자인 예시:
-/// --------------------------------------
 /// [시작시간] [과목]
 /// [종료시간]
 /// [특이사항]
-/// --------------------------------------
 class TimeTableItem extends StatelessWidget {
   final String startTime;
   final String title;
@@ -239,7 +209,7 @@ class TimeTableItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 시작시간과 과목 (둘 다 크게 표시)
+          // 시작시간과 과목 (크게 표시)
           Row(
             children: [
               Text(
@@ -298,7 +268,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  String _selectedDay = '월';
+  String _selectedDay = days.first;
 
   @override
   void dispose() {
@@ -322,14 +292,13 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 요일 선택
+            // 요일 선택 드롭다운
             DropdownButtonFormField<String>(
               value: _selectedDay,
-              items: <String>['월', '화', '수', '목', '금']
-                  .map((String value) {
+              items: days.map((String day) {
                 return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
+                  value: day,
+                  child: Text(day),
                 );
               }).toList(),
               onChanged: (newValue) {
@@ -383,9 +352,22 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
               ),
             ),
             SizedBox(height: 20),
-            // 저장 버튼 (저장 로직은 필요에 따라 추가)
+            // 저장 버튼 (저장 로직은 필요에 따라 확장)
             ElevatedButton(
               onPressed: () {
+                // 예시: 새로운 스케줄을 선택한 요일에 추가하는 로직
+                final newSchedule = ScheduleData(
+                  start: _startTimeController.text,
+                  end: _endTimeController.text,
+                  title: _subjectController.text,
+                  note: _noteController.text,
+                );
+                // 해당 요일에 데이터가 있다면 추가, 없으면 새 리스트 생성
+                if (scheduleMap[_selectedDay] != null) {
+                  scheduleMap[_selectedDay]!.add(newSchedule);
+                } else {
+                  scheduleMap[_selectedDay] = [newSchedule];
+                }
                 Navigator.of(context).pop();
               },
               child: Text('저장'),
