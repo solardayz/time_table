@@ -22,7 +22,7 @@ class TimeTableApp extends StatelessWidget {
 // 전역에 요일 목록 선언
 const List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 전역 변수 (global)로 스케줄 데이터를 관리
+// 전역 변수 (global)로 스케줄 데이터를 관리 (초기 데이터는 DB에 미리 삽입한 것으로 가정)
 Map<String, List<ScheduleData>> globalScheduleMap = {
   '월': [
     ScheduleData(order: 1, startHour: 8, startMinute: 40, endHour: 13, endMinute: 40, title: '학교', note: '정규 수업', day: '월'),
@@ -59,7 +59,7 @@ Map<String, List<ScheduleData>> globalScheduleMap = {
   ],
 };
 
-// DatabaseHelper: SQFlite를 사용하여 데이터베이스 및 schedule 테이블 관리
+// DatabaseHelper: SQFlite를 이용하여 DB 및 schedule 테이블 관리
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
   DatabaseHelper._privateConstructor();
@@ -254,7 +254,7 @@ class AnimatedTabBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// DayScheduleView: FutureBuilder를 통해 DB에서 해당 요일의 스케줄을 불러오고,
-/// ReorderableListView 및 Dismissible로 항목의 순서 변경 및 삭제를 지원
+/// ReorderableListView 및 삭제 버튼으로 항목의 순서 변경 및 삭제를 지원
 class DayScheduleView extends StatefulWidget {
   final String day;
   DayScheduleView({required this.day});
@@ -264,10 +264,8 @@ class DayScheduleView extends StatefulWidget {
 
 class _DayScheduleViewState extends State<DayScheduleView> {
   Future<List<ScheduleData>> _fetchSchedules() async {
-    List<Map<String, dynamic>> rows =
-    await DatabaseHelper.instance.querySchedulesByDay(widget.day);
-    List<ScheduleData> schedules =
-    rows.map((row) => ScheduleData.fromMap(row)).toList();
+    List<Map<String, dynamic>> rows = await DatabaseHelper.instance.querySchedulesByDay(widget.day);
+    List<ScheduleData> schedules = rows.map((row) => ScheduleData.fromMap(row)).toList();
     schedules.sort((a, b) => a.order.compareTo(b.order));
     return schedules;
   }
@@ -300,43 +298,41 @@ class _DayScheduleViewState extends State<DayScheduleView> {
           },
           children: [
             for (int i = 0; i < schedules.length; i++)
-              Dismissible(
+              Container(
                 key: ValueKey(schedules[i].id),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (direction) async {
-                  return await showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text("삭제하시겠습니까?"),
-                      content: Text("해당 스케줄을 삭제하시겠습니까?"),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: Text("아니요"),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: Text("예"),
-                        ),
-                      ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TimeTableItem(
+                        startHour: schedules[i].startHour,
+                        startMinute: schedules[i].startMinute,
+                        title: schedules[i].title,
+                        endHour: schedules[i].endHour,
+                        endMinute: schedules[i].endMinute,
+                        note: schedules[i].note,
+                      ),
                     ),
-                  );
-                },
-                onDismissed: (direction) async {
-                  if (schedules[i].id != null) {
-                    await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
-                  }
-                  setState(() {});
-                },
-                child: Container(
-                  child: TimeTableItem(
-                    startHour: schedules[i].startHour,
-                    startMinute: schedules[i].startMinute,
-                    title: schedules[i].title,
-                    endHour: schedules[i].endHour,
-                    endMinute: schedules[i].endMinute,
-                    note: schedules[i].note,
-                  ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () async {
+                        bool confirm = await showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text("삭제하시겠습니까?"),
+                            content: Text("해당 스케줄을 삭제하시겠습니까?"),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text("아니요")),
+                              TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text("예")),
+                            ],
+                          ),
+                        );
+                        if (confirm && schedules[i].id != null) {
+                          await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
+                          setState(() {});
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -420,8 +416,7 @@ class TimeTableItem extends StatelessWidget {
           // 종료시간
           Text(
             formatTime(endHour, endMinute),
-            style: TextStyle(fontSize: 18, color: customEndTimeColor,
-            fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 18, color: customEndTimeColor, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 8),
           // 특이사항 (우측 정렬)
@@ -610,7 +605,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                 },
               ),
               SizedBox(height: 16),
-              // Note input
+              // Note input (선택사항이므로 validator 주석 처리)
               TextFormField(
                 controller: _noteController,
                 decoration: InputDecoration(
@@ -618,10 +613,10 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                   hintText: '예: 추가 메모',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                validator: (value) {
-                  // if (value == null || value.isEmpty) return '특이사항을 입력하세요.';
-                  // return null;
-                },
+                // validator: (value) {
+                //   if (value == null || value.isEmpty) return '특이사항을 입력하세요.';
+                //   return null;
+                // },
               ),
               SizedBox(height: 16),
               Divider(thickness: 2),
@@ -640,9 +635,7 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
                       note: _noteController.text,
                       day: _selectedDay,
                     );
-                    // Retrieve current schedules for the selected day from the global DB-managed map.
-                    // For simplicity, we query the current globalScheduleMap.
-                    // (실제 DB 업데이트 후 재조회하는 것이 더 정확하겠지만, 여기서는 글로벌 변수를 사용)
+                    // Retrieve current schedules from globalScheduleMap.
                     List<ScheduleData> currentSchedules =
                     List<ScheduleData>.from(globalScheduleMap[_selectedDay] ?? []);
                     newSchedule.order = currentSchedules.length + 1;
