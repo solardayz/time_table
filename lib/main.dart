@@ -54,7 +54,7 @@ class TimeTableApp extends StatelessWidget {
   }
 }
 
-// 메인 화면을 StatefulWidget으로 변경하여 스케줄이 추가될 때 setState로 갱신
+// 메인 화면을 StatefulWidget으로 변경하여 스케줄 추가 시 setState로 갱신
 class TimeTableHome extends StatefulWidget {
   @override
   _TimeTableHomeState createState() => _TimeTableHomeState();
@@ -179,6 +179,8 @@ class DayScheduleView extends StatelessWidget {
 
 /// 커스텀 스타일이 적용된 스케줄 항목 UI
 /// [시작시간] [과목] / [종료시간] / [특이사항]
+/// 커스텀 스타일이 적용된 스케줄 항목 UI
+/// [시작시간] [과목] / [종료시간] / [특이사항] (특이사항은 우측 정렬)
 class TimeTableItem extends StatelessWidget {
   final String startTime;
   final String title;
@@ -202,6 +204,23 @@ class TimeTableItem extends StatelessWidget {
     final Color customEndTimeColor = Colors.grey;
     final Color customNoteColor = Colors.orange;
 
+    // 시간을 "00:00" 형태로 포맷하는 헬퍼 함수
+    String formatTime(String time) {
+      if (time.contains(":")) {
+        List<String> parts = time.split(":");
+        if (parts.length == 2) {
+          String hour = parts[0].padLeft(2, '0');
+          String minute = parts[1].padLeft(2, '0');
+          return "$hour:$minute";
+        }
+        return time;
+      } else {
+        final int? hour = int.tryParse(time);
+        if (hour == null) return time;
+        return hour.toString().padLeft(2, '0') + ":00";
+      }
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8.0),
       padding: EdgeInsets.all(12.0),
@@ -224,7 +243,7 @@ class TimeTableItem extends StatelessWidget {
           Row(
             children: [
               Text(
-                "$startTime.",
+                "${formatTime(startTime)}.",
                 style: TextStyle(
                   fontSize: 22,
                   color: customStartTimeColor,
@@ -245,14 +264,14 @@ class TimeTableItem extends StatelessWidget {
           SizedBox(height: 8),
           // 종료시간 (작게 표시)
           Text(
-            endTime,
+            formatTime(endTime),
             style: TextStyle(
               fontSize: 14,
               color: customEndTimeColor,
             ),
           ),
           SizedBox(height: 8),
-          // 특이사항 (이탤릭)
+          // 특이사항 (우측 정렬)
           Text(
             note,
             style: TextStyle(
@@ -260,6 +279,7 @@ class TimeTableItem extends StatelessWidget {
               color: customNoteColor,
               fontStyle: FontStyle.italic,
             ),
+            textAlign: TextAlign.right,
           ),
         ],
       ),
@@ -267,12 +287,17 @@ class TimeTableItem extends StatelessWidget {
   }
 }
 
+
+/// 스케줄 추가용 Bottom Sheet (요일 선택 포함)
+/// 입력 후 "저장" 버튼을 누르면 밸리데이션을 체크한 후 해당 요일의 scheduleMap에 저장됩니다.
 class AddScheduleBottomSheet extends StatefulWidget {
   @override
   _AddScheduleBottomSheetState createState() => _AddScheduleBottomSheetState();
 }
 
 class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
+  final _formKey = GlobalKey<FormState>();
+
   final TextEditingController _startTimeController = TextEditingController();
   final TextEditingController _endTimeController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
@@ -300,128 +325,171 @@ class _AddScheduleBottomSheetState extends State<AddScheduleBottomSheet> {
           right: 16,
           top: 16,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 상단 드래그 핸들 (작은 회색 막대)
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 16),
-            // 요일 선택 드롭다운 (원하는 경우 상단에 배치)
-            DropdownButtonFormField<String>(
-              value: _selectedDay,
-              items: days.map((String day) {
-                return DropdownMenuItem<String>(
-                  value: day,
-                  child: Text(day),
-                );
-              }).toList(),
-              onChanged: (newValue) {
-                setState(() {
-                  _selectedDay = newValue!;
-                });
-              },
-              decoration: InputDecoration(
-                labelText: '요일',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 상단 드래그 핸들 (작은 회색 막대)
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-            // 첫 번째 행: 시작시간과 종료시간 (나란히 배치)
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _startTimeController,
-                    decoration: InputDecoration(
-                      labelText: '시작시간',
-                      hintText: '예: 08:40',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+              SizedBox(height: 16),
+              // 요일 선택 드롭다운
+              DropdownButtonFormField<String>(
+                value: _selectedDay,
+                items: days.map((String day) {
+                  return DropdownMenuItem<String>(
+                    value: day,
+                    child: Text(day),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedDay = newValue!;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: '요일',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: TextField(
-                    controller: _endTimeController,
-                    decoration: InputDecoration(
-                      labelText: '종료시간',
-                      hintText: '예: 13:40',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+              ),
+              SizedBox(height: 16),
+              // 첫 번째 행: 시작시간과 종료시간 (나란히 배치)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _startTimeController,
+                      decoration: InputDecoration(
+                        labelText: '시작시간',
+                        hintText: '예: 8',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '시작시간을 입력하세요.';
+                        }
+                        final hour = int.tryParse(value);
+                        if (hour == null || hour < 1 || hour > 24) {
+                          return '1부터 24 사이의 숫자를 입력하세요.';
+                        }
+                        return null;
+                      },
                     ),
                   ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _endTimeController,
+                      decoration: InputDecoration(
+                        labelText: '종료시간',
+                        hintText: '예: 13',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '종료시간을 입력하세요.';
+                        }
+                        final hour = int.tryParse(value);
+                        if (hour == null || hour < 1 || hour > 24) {
+                          return '1부터 24 사이의 숫자를 입력하세요.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              // 두 번째 행: 과목
+              TextFormField(
+                controller: _subjectController,
+                decoration: InputDecoration(
+                  labelText: '과목',
+                  hintText: '예: 학교',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ],
-            ),
-            SizedBox(height: 16),
-            // 두 번째 행: 과목
-            TextField(
-              controller: _subjectController,
-              decoration: InputDecoration(
-                labelText: '과목',
-                hintText: '예: 학교',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '과목을 입력하세요.';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              // 세 번째 행: 특이사항
+              TextFormField(
+                controller: _noteController,
+                decoration: InputDecoration(
+                  labelText: '특이사항',
+                  hintText: '예: 추가 메모',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '특이사항을 입력하세요.';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              Divider(thickness: 2),
+              SizedBox(height: 16),
+              // 저장 버튼
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    final newSchedule = ScheduleData(
+                      start: _startTimeController.text,
+                      end: _endTimeController.text,
+                      title: _subjectController.text,
+                      note: _noteController.text,
+                    );
+                    if (scheduleMap[_selectedDay] != null) {
+                      scheduleMap[_selectedDay]!.add(newSchedule);
+                    } else {
+                      scheduleMap[_selectedDay] = [newSchedule];
+                    }
+                    Navigator.of(context).pop();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  '저장',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-            // 세 번째 행: 특이사항
-            TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: '특이사항',
-                hintText: '예: 추가 메모',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Divider(thickness: 2),
-            SizedBox(height: 16),
-            // 저장 버튼
-            ElevatedButton(
-              onPressed: () {
-                final newSchedule = ScheduleData(
-                  start: _startTimeController.text,
-                  end: _endTimeController.text,
-                  title: _subjectController.text,
-                  note: _noteController.text,
-                );
-                if (scheduleMap[_selectedDay] != null) {
-                  scheduleMap[_selectedDay]!.add(newSchedule);
-                } else {
-                  scheduleMap[_selectedDay] = [newSchedule];
-                }
-                Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                '저장',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.white),
-              ),
-            ),
-            SizedBox(height: 16),
-          ],
+              SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
