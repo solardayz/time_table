@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as p; // 별칭을 사용하여 BuildContext와 충돌 방지
 import 'package:sqflite/sqflite.dart';
 import 'package:numberpicker/numberpicker.dart';
 
@@ -23,8 +23,8 @@ class MyApp extends StatelessWidget {
 // Global Variables
 // ----------------------
 const List<String> globalDays = ['월', '화', '수', '목', '금', '토', '일'];
-// 전역 변수: 사용자와 스케줄 데이터(초기 데이터는 DB에 미리 삽입된 것으로 가정)
-// (실제 앱에서는 사용자가 직접 추가하는 방식으로 관리)
+
+// 전역 변수: 초기 데이터 (실제 앱에서는 DB에 사용자와 스케줄을 직접 추가)
 Map<String, List<ScheduleData>> globalScheduleMap = {
   '월': [
     ScheduleData(order: 1, startHour: 8, startMinute: 40, endHour: 13, endMinute: 40, title: '학교', note: '정규 수업', day: '월', userId: 0),
@@ -116,14 +116,17 @@ class DatabaseHelper {
     return await db.query('user', orderBy: 'id ASC');
   }
 
-  Future<int> deleteUser(int id) async {
+  Future<int> updateUser(int id, String newName) async {
     Database db = await instance.database;
-    // 먼저 해당 사용자의 시간표 데이터를 모두 삭제
-    await db.delete('schedule', where: 'userId = ?', whereArgs: [id]);
-    // 그 후에 사용자를 삭제
-    return await db.delete('user', where: 'id = ?', whereArgs: [id]);
+    return await db.update('user', {'name': newName}, where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> deleteUser(int id) async {
+    Database db = await instance.database;
+    // 사용자 삭제 시 해당 사용자의 시간표도 함께 삭제
+    await db.delete('schedule', where: 'userId = ?', whereArgs: [id]);
+    return await db.delete('user', where: 'id = ?', whereArgs: [id]);
+  }
 
   Future<int> insertSchedule(Map<String, dynamic> row) async {
     Database db = await instance.database;
@@ -238,12 +241,8 @@ class User {
 }
 
 // ----------------------
-// UserSelectScreen: 첫 화면 사용자 선택 및 추가
+// UserSelectScreen: 사용자 추가, 수정, 삭제 및 선택
 // ----------------------
-
-// DatabaseHelper와 User, TimetableScreen 등은 기존 코드와 동일하게 유지합니다.
-// 여기서는 UserSelectScreen의 UI 스타일링 부분만 수정한 예제를 보여드립니다.
-
 class UserSelectScreen extends StatefulWidget {
   @override
   _UserSelectScreenState createState() => _UserSelectScreenState();
@@ -294,6 +293,37 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
       setState(() {
         _usersFuture = _fetchUsers();
       });
+    }
+  }
+
+  void _updateUser(User user) async {
+    TextEditingController _editController = TextEditingController(text: user.name);
+    bool updated = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("이름 수정"),
+        content: TextField(
+          controller: _editController,
+          decoration: InputDecoration(labelText: "새로운 이름"),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text("취소")),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text("저장")),
+        ],
+      ),
+    );
+    if (updated) {
+      String newName = _editController.text.trim();
+      if (newName.isNotEmpty && user.id != null) {
+        await DatabaseHelper.instance.updateUser(user.id!, newName);
+        setState(() {
+          _usersFuture = _fetchUsers();
+        });
+      }
     }
   }
 
@@ -375,10 +405,13 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                             user.name,
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          // 우측에 삭제 버튼과 선택 아이콘 함께 배치
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _updateUser(user),
+                              ),
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => _deleteUser(user),
@@ -387,7 +420,6 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                             ],
                           ),
                           onTap: () {
-                            // 사용자를 선택하면 해당 사용자의 시간표 화면으로 이동
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -408,8 +440,6 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
     );
   }
 }
-
-
 
 // ----------------------
 // TimetableScreen: 선택한 사용자의 시간표 화면
@@ -498,8 +528,7 @@ class DayScheduleViewForUser extends StatefulWidget {
 
 class _DayScheduleViewForUserState extends State<DayScheduleViewForUser> {
   Future<List<ScheduleData>> _fetchSchedules() async {
-    List<Map<String, dynamic>> rows =
-    await DatabaseHelper.instance.querySchedulesByDay(widget.userId, widget.day);
+    List<Map<String, dynamic>> rows = await DatabaseHelper.instance.querySchedulesByDay(widget.userId, widget.day);
     List<ScheduleData> schedules = rows.map((row) => ScheduleData.fromMap(row)).toList();
     schedules.sort((a, b) => a.order.compareTo(b.order));
     return schedules;
@@ -569,14 +598,13 @@ class _DayScheduleViewForUserState extends State<DayScheduleViewForUser> {
               ),
           ],
         );
-
       },
     );
   }
 }
 
 // ----------------------
-// TimeTableItem: 각 스케줄 항목을 Card 위젯으로 이쁘게 표시 (디자인 변경)
+// TimeTableItem: 각 스케줄 항목을 Card 위젯으로 이쁘게 표시 (삭제 버튼 포함)
 // ----------------------
 class TimeTableItem extends StatelessWidget {
   final int startHour;
@@ -615,7 +643,7 @@ class TimeTableItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 첫 번째 행: 시작시간, 과목, 그리고 우측 삭제 버튼
+            // 첫 번째 행: 시작시간, 과목, 우측 삭제 버튼
             Row(
               children: [
                 Text(
@@ -655,7 +683,7 @@ class TimeTableItem extends StatelessWidget {
               ),
             ),
             SizedBox(height: 8),
-            // 세 번째 행: 특이사항 (우측 정렬)
+            // 세 번째 행: 특이사항 (오른쪽 정렬)
             Align(
               alignment: Alignment.centerRight,
               child: Text(
@@ -674,9 +702,8 @@ class TimeTableItem extends StatelessWidget {
   }
 }
 
-
 // ----------------------
-// AddScheduleBottomSheet: 스케줄 추가 폼 (요일 선택, 텍스트 입력으로 시간 입력, 유효성 검사 포함)
+// AddScheduleBottomSheet: 스케줄 추가 폼 (요일 선택, 텍스트 입력, 유효성 검사 포함)
 // ----------------------
 class AddScheduleBottomSheet extends StatefulWidget {
   final int userId;
