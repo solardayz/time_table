@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:time_table/constants.dart';
 import 'package:time_table/data/database_helper.dart';
 
 class AlarmSettingsScreen extends StatefulWidget {
@@ -11,31 +10,71 @@ class AlarmSettingsScreen extends StatefulWidget {
 
 class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
   int alarmOffset = 20; // 기본값 20분 전
+  late TextEditingController _textController;
 
   @override
   void initState() {
     super.initState();
     _loadAlarmOffset();
+    _textController = TextEditingController(text: alarmOffset.toString());
   }
 
-  // DB에서 저장된 알람 오프셋을 불러옵니다.
   void _loadAlarmOffset() async {
     int offset = await DatabaseHelper.instance.getAlarmOffset(widget.userId);
     setState(() {
       alarmOffset = offset;
+      _textController.text = alarmOffset.toString();
     });
   }
 
-  // 사용자가 선택한 알람 오프셋을 DB에 저장하고, Snackbar로 메시지를 표시합니다.
   void _saveAlarmOffset() async {
     await DatabaseHelper.instance.insertOrUpdateAlarm(widget.userId, alarmOffset);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$alarmOffset 분전에 울림으로 변경되어 있습니다.')),
     );
-    // 잠시 후 화면을 닫으며 값을 반환합니다.
     Future.delayed(Duration(seconds: 1), () {
       Navigator.of(context).pop(alarmOffset);
     });
+  }
+
+  void _updateAlarmOffsetFromText(String value) {
+    int? parsed = int.tryParse(value);
+    if (parsed != null && parsed >= 1 && parsed <= 60) {
+      setState(() {
+        alarmOffset = parsed;
+      });
+    }
+  }
+
+  Widget buildAlarmOffsetDisplay() {
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: Colors.grey,
+            thickness: 1,
+            endIndent: 8,
+          ),
+        ),
+        Text(
+          '$alarmOffset 분전',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        Expanded(
+          child: Divider(
+            color: Colors.grey,
+            thickness: 1,
+            indent: 8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,22 +95,29 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
             SizedBox(height: 16),
             Slider(
               value: alarmOffset.toDouble(),
-              min: 0,
+              min: 1,
               max: 60,
               divisions: 60,
               label: '$alarmOffset 분 전',
               onChanged: (value) {
                 setState(() {
                   alarmOffset = value.toInt();
+                  _textController.text = alarmOffset.toString();
                 });
               },
             ),
-            SizedBox(height: 8),
-            Center(
-              child: Text(
-                '$alarmOffset 분 전',
-                style: TextStyle(fontSize: 18),
+            SizedBox(height: 16),
+            // 여기서 buildAlarmOffsetDisplay 위젯 사용
+            buildAlarmOffsetDisplay(),
+            SizedBox(height: 16),
+            TextField(
+              controller: _textController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: '알람 시간(분 전)',
+                border: OutlineInputBorder(),
               ),
+              onChanged: _updateAlarmOffsetFromText,
             ),
             Spacer(),
             Center(

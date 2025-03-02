@@ -37,7 +37,7 @@ Future<void> scheduleAlarmsForToday(int userId) async {
       await NotificationService().scheduleAlarm(
         id: schedule.id ?? schedule.order,
         title: schedule.title,
-        body: "종료 ${alarmOffset}분 전입니다. 스케줄 테이블에서 '${schedule.title}'을(를) 확인하세요.",
+        body: "종료 ${alarmOffset}분 전입니다. 시간표에서 '${schedule.title}'을(를) 확인하세요.",
         scheduledDate: alarmTime.toLocal(),
       );
     }
