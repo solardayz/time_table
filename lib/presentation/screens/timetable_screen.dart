@@ -1,6 +1,8 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:time_table/constants.dart';
 import 'package:time_table/domain/models/user.dart';
+import 'package:time_table/presentation/screens/request_notification_permission_screen.dart';
 import 'package:time_table/presentation/widgets/animated_tab_bar_for_user.dart';
 import 'package:time_table/presentation/widgets/day_schedule_view_for_user.dart';
 import 'package:time_table/presentation/widgets/add_schedule_bottom_sheet.dart';
@@ -33,25 +35,47 @@ class _TimetableScreenState extends State<TimetableScreen> {
             IconButton(
               icon: Icon(Icons.alarm),
               onPressed: () async {
-                final newAlarmOffset = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AlarmSettingsScreen(userId: widget.user.id!),
-                  ),
-                );
-                // 사용자가 알람 오프셋을 변경하면 알람 예약을 다시 호출
-                if (newAlarmOffset != null) {
-                  scheduleAlarmsForToday(widget.user.id!);
+                bool isAllowed =
+                    await AwesomeNotifications().isNotificationAllowed();
+                if (!isAllowed) {
+                  // 알림 권한이 없으면 권한 요청 화면으로 이동
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => RequestNotificationPermissionScreen(),
+                    ),
+                  );
+                } else {
+                  // 알림 권한이 있으면 알람 설정 화면으로 이동
+                  final newAlarmOffset = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>
+                              AlarmSettingsScreen(userId: widget.user.id!),
+                    ),
+                  );
+                  if (newAlarmOffset != null) {
+                    // 사용자가 설정한 값에 따라 알람 예약 로직을 호출하거나 업데이트합니다.
+                    print('새 알람 오프셋: $newAlarmOffset 분 전');
+                  }
                 }
               },
-            )
+            ),
           ],
           bottom: AnimatedTabBarForUser(),
         ),
         body: TabBarView(
-          children: globalDays
-              .map((day) => DayScheduleViewForUser(day: day, userId: widget.user.id!))
-              .toList(),
+          children:
+              globalDays
+                  .map(
+                    (day) => DayScheduleViewForUser(
+                      day: day,
+                      userId: widget.user.id!,
+                    ),
+                  )
+                  .toList(),
         ),
         floatingActionButton: FloatingActionButton(
           child: Icon(Icons.add),
@@ -59,7 +83,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
-              builder: (context) => AddScheduleBottomSheet(userId: widget.user.id!),
+              builder:
+                  (context) => AddScheduleBottomSheet(userId: widget.user.id!),
             ).then((_) {
               setState(() {});
             });

@@ -23,6 +23,13 @@ class NotificationService {
       ],
       debug: true,
     );
+
+    // 알림 권한 확인 및 요청
+    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      // 사용자가 거부했거나 아직 요청하지 않은 경우 권한 요청
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
   }
 
   Future<void> scheduleAlarm({
