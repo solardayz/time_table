@@ -92,4 +92,9 @@ class DatabaseHelper {
   Future initializeDatabase() async {
     await database;
   }
+
+  Future<int> updateSchedule(int id, Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.update('schedule', row, where: 'id = ?', whereArgs: [id]);
+  }
 }

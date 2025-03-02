@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:time_table/constants.dart';
 import 'package:time_table/data/database_helper.dart';
 import 'package:time_table/domain/models/schedule_data.dart';
 import 'package:time_table/presentation/widgets/timetable_item.dart';
-import 'package:time_table/presentation/widgets/add_schedule_bottom_sheet.dart';
+import 'package:time_table/presentation/widgets/edit_schedule_bottom_sheet.dart';
 
 class DayScheduleViewForUser extends StatefulWidget {
   final String day;
@@ -30,10 +29,11 @@ class _DayScheduleViewForUserState extends State<DayScheduleViewForUser> {
           return Center(child: CircularProgressIndicator());
         if (snapshot.hasError)
           return Center(child: Text('Error: ${snapshot.error}'));
+
         final schedules = snapshot.data ?? [];
         return ReorderableListView(
           padding: EdgeInsets.all(16.0),
-          onReorder: (oldIndex, newIndex) {
+          onReorder: (oldIndex, newIndex) async {
             setState(() {
               if (newIndex > oldIndex) newIndex -= 1;
               final item = schedules.removeAt(oldIndex);
@@ -73,6 +73,15 @@ class _DayScheduleViewForUserState extends State<DayScheduleViewForUser> {
                       await DatabaseHelper.instance.deleteSchedule(schedules[i].id!);
                       setState(() {});
                     }
+                  },
+                  onEdit: () async {
+                    // 수정 다이얼로그(또는 BottomSheet) 호출
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (context) => EditScheduleBottomSheet(schedule: schedules[i]),
+                    );
+                    setState(() {}); // 수정 후 갱신
                   },
                 ),
               ),

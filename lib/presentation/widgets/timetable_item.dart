@@ -1,3 +1,4 @@
+// presentation/widgets/timetable_item.dart
 import 'package:flutter/material.dart';
 
 class TimeTableItem extends StatelessWidget {
@@ -8,6 +9,8 @@ class TimeTableItem extends StatelessWidget {
   final int endMinute;
   final String note;
   final VoidCallback? onDelete;
+  final VoidCallback? onEdit; // 수정 콜백 추가
+
   TimeTableItem({
     required this.startHour,
     required this.startMinute,
@@ -16,10 +19,13 @@ class TimeTableItem extends StatelessWidget {
     required this.endMinute,
     required this.note,
     this.onDelete,
+    this.onEdit,
   });
+
   String formatTime(int hour, int minute) {
     return hour.toString().padLeft(2, '0') + ":" + minute.toString().padLeft(2, '0');
   }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -34,7 +40,7 @@ class TimeTableItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 첫 번째 행: 시작시간, 과목, 우측 삭제 버튼
+            // 첫 번째 행: 시작시간, 과목, 우측 수정/삭제 버튼
             Row(
               children: [
                 Text(
@@ -48,6 +54,11 @@ class TimeTableItem extends StatelessWidget {
                     style: TextStyle(fontSize: 22, color: Colors.black, fontWeight: FontWeight.bold),
                   ),
                 ),
+                if (onEdit != null)
+                  IconButton(
+                    icon: Icon(Icons.edit, color: Colors.green),
+                    onPressed: onEdit,
+                  ),
                 if (onDelete != null)
                   IconButton(
                     icon: Icon(Icons.delete, color: Colors.red),
