@@ -18,14 +18,14 @@ class DatabaseHelper {
   }
 
   Future _onCreate(Database db, int version) async {
-    // 사용자 테이블
+    // 사용자 테이블 생성
     await db.execute('''
       CREATE TABLE user (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL
       )
     ''');
-    // 스케줄 테이블 (userId 외래키 포함)
+    // 스케줄 테이블 생성 (userId 외래키 포함)
     await db.execute('''
       CREATE TABLE schedule (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +38,15 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         note TEXT NOT NULL,
         scheduleOrder INTEGER NOT NULL,
+        FOREIGN KEY(userId) REFERENCES user(id)
+      )
+    ''');
+    // 사용자 알람 설정 테이블 생성
+    await db.execute('''
+      CREATE TABLE user_alarm (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        alarmOffset INTEGER NOT NULL DEFAULT 20,
         FOREIGN KEY(userId) REFERENCES user(id)
       )
     ''');
@@ -60,8 +69,9 @@ class DatabaseHelper {
 
   Future<int> deleteUser(int id) async {
     Database db = await instance.database;
-    // 사용자를 삭제할 때 해당 사용자의 스케줄도 함께 삭제
+    // 사용자 삭제 시 해당 사용자의 시간표 및 알람도 함께 삭제
     await db.delete('schedule', where: 'userId = ?', whereArgs: [id]);
+    await db.delete('user_alarm', where: 'userId = ?', whereArgs: [id]);
     return await db.delete('user', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -80,8 +90,12 @@ class DatabaseHelper {
 
   Future<int> updateScheduleOrder(int id, int newOrder) async {
     Database db = await instance.database;
-    return await db.update('schedule', {'scheduleOrder': newOrder},
-        where: 'id = ?', whereArgs: [id]);
+    return await db.update('schedule', {'scheduleOrder': newOrder}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateSchedule(int id, Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.update('schedule', row, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteSchedule(int id) async {
@@ -89,12 +103,40 @@ class DatabaseHelper {
     return await db.delete('schedule', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future initializeDatabase() async {
-    await database;
+  // 사용자 알람 설정 관련 메서드
+  Future<int> insertOrUpdateAlarm(int userId, int alarmOffset) async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> rows = await db.query(
+      'user_alarm',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+    if (rows.isEmpty) {
+      return await db.insert('user_alarm', {
+        'userId': userId,
+        'alarmOffset': alarmOffset,
+      });
+    } else {
+      int id = rows.first['id'];
+      return await db.update('user_alarm', {'alarmOffset': alarmOffset},
+          where: 'id = ?', whereArgs: [id]);
+    }
   }
 
-  Future<int> updateSchedule(int id, Map<String, dynamic> row) async {
+  Future<int> getAlarmOffset(int userId) async {
     Database db = await instance.database;
-    return await db.update('schedule', row, where: 'id = ?', whereArgs: [id]);
+    final List<Map<String, dynamic>> rows = await db.query(
+      'user_alarm',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+    if (rows.isNotEmpty) {
+      return rows.first['alarmOffset'];
+    }
+    return 20; // 기본값 20분 전
+  }
+
+  Future initializeDatabase() async {
+    await database;
   }
 }
