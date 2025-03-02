@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:time_table/data/database_helper.dart';
 
 class AlarmSettingsScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
     _textController = TextEditingController(text: alarmOffset.toString());
   }
 
+  // DB에서 저장된 알람 오프셋을 불러옵니다.
   void _loadAlarmOffset() async {
     int offset = await DatabaseHelper.instance.getAlarmOffset(widget.userId);
     setState(() {
@@ -27,6 +29,7 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
     });
   }
 
+  // 사용자가 선택한 알람 오프셋을 DB에 저장하고, Snackbar로 메시지를 표시 후 화면을 닫습니다.
   void _saveAlarmOffset() async {
     await DatabaseHelper.instance.insertOrUpdateAlarm(widget.userId, alarmOffset);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -37,11 +40,19 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
     });
   }
 
+  // 텍스트 필드의 값이 변경될 때, 값을 1~60 사이로 클램핑하여 슬라이더와 변수 업데이트
   void _updateAlarmOffsetFromText(String value) {
     int? parsed = int.tryParse(value);
-    if (parsed != null && parsed >= 1 && parsed <= 60) {
+    if (parsed != null) {
+      // 클램핑: 최소 1, 최대 60
+      int clamped = parsed.clamp(1, 60) as int;
       setState(() {
-        alarmOffset = parsed;
+        alarmOffset = clamped;
+        // 텍스트 필드에 클램핑된 값을 다시 반영
+        _textController.text = clamped.toString();
+        _textController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _textController.text.length),
+        );
       });
     }
   }
@@ -57,7 +68,7 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
           ),
         ),
         Text(
-          '$alarmOffset 분전',
+          '$alarmOffset 분전에 울림',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         Expanded(
@@ -93,9 +104,10 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
               style: TextStyle(fontSize: 20),
             ),
             SizedBox(height: 16),
+            // 슬라이더
             Slider(
               value: alarmOffset.toDouble(),
-              min: 1,
+              min: 1, // 최소 1분부터 선택
               max: 60,
               divisions: 60,
               label: '$alarmOffset 분 전',
@@ -107,12 +119,14 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
               },
             ),
             SizedBox(height: 16),
-            // 여기서 buildAlarmOffsetDisplay 위젯 사용
+            // 가운데 구분선과 함께 알람 오프셋을 표시하는 위젯
             buildAlarmOffsetDisplay(),
             SizedBox(height: 16),
-            TextField(
+            // 하단 텍스트 필드 (1~60 범위의 숫자만 입력 가능)
+            TextFormField(
               controller: _textController,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 labelText: '알람 시간(분 전)',
                 border: OutlineInputBorder(),
