@@ -4,6 +4,9 @@ import 'package:time_table/constants.dart';
 import 'package:time_table/data/database_helper.dart';
 import 'package:time_table/domain/models/schedule_data.dart';
 
+import '../../data/services/alarm_scheduler.dart';
+import '../../data/services/notification_service.dart';
+
 class EditScheduleBottomSheet extends StatefulWidget {
   final ScheduleData schedule;
   EditScheduleBottomSheet({required this.schedule});
@@ -192,7 +195,7 @@ class _EditScheduleBottomSheetState extends State<EditScheduleBottomSheet> {
               Divider(thickness: 2),
               SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     final updatedSchedule = ScheduleData(
                       id: widget.schedule.id,
@@ -206,8 +209,12 @@ class _EditScheduleBottomSheetState extends State<EditScheduleBottomSheet> {
                       day: _selectedDay,
                       userId: widget.schedule.userId,
                     );
-                    DatabaseHelper.instance
+                    await DatabaseHelper.instance
                         .updateSchedule(widget.schedule.id!, updatedSchedule.toMap());
+
+                    await NotificationService().cancelAllAlarms(); // 기존 알람 제거
+                    await scheduleAlarmsForToday(widget.schedule.userId!); // 새로 알람 등록
+
                     Navigator.of(context).pop();
                   }
                 },
