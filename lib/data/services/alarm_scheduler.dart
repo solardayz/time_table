@@ -1,3 +1,4 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:time_table/constants.dart';
 import 'package:time_table/domain/models/schedule_data.dart';
 import 'package:time_table/data/database_helper.dart';
@@ -38,8 +39,14 @@ Future<void> scheduleAlarmsForToday(int userId) async {
         id: schedule.id ?? schedule.order,
         title: schedule.title,
         body: "종료 ${alarmOffset}분 전입니다. 시간표에서 '${schedule.title}'을(를) 확인하세요.",
-        scheduledDate: alarmTime.toLocal(),
+        scheduledDate: alarmTime,
       );
     }
   }
+
+  final list = await AwesomeNotifications().listScheduledNotifications();
+  list.forEach((n) {
+    print("✅ 등록된 알림: ${n.content?.title} / ${n.schedule}");
+  });
 }
+
