@@ -28,78 +28,79 @@ class TimeTableItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 팝업 관련 onLongPress 제거
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Colors.grey),
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Color(0xFFFFFDE7), Color(0xFFFFF9C4)], // 파스텔 노랑 그라데이션
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 첫 번째 행: 시작시간, 과목, 우측 수정/삭제 버튼
             Row(
               children: [
+                Icon(Icons.access_time, color: Colors.brown),
+                SizedBox(width: 8),
                 Text(
-                  formatTime(startHour, startMinute),
+                  "${formatTime(startHour, startMinute)} - ${formatTime(endHour, endMinute)}",
                   style: TextStyle(
-                    fontSize: 22,
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Courier',
+                    fontSize: 16,
+                    color: Colors.brown,
                   ),
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                Spacer(),
                 if (onEdit != null)
-                  IconButton(
-                    icon: Icon(Icons.edit, color: Colors.green),
-                    onPressed: onEdit,
-                  ),
+                  IconButton(icon: Icon(Icons.edit, color: Colors.green), onPressed: onEdit),
                 if (onDelete != null)
-                  IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: onDelete,
-                  ),
+                  IconButton(icon: Icon(Icons.delete_outline, color: Colors.redAccent), onPressed: onDelete),
               ],
             ),
             SizedBox(height: 8),
-            // 두 번째 행: 종료시간
             Text(
-              formatTime(endHour, endMinute),
+              title,
               style: TextStyle(
-                fontSize: 18,
-                color: Colors.deepPurpleAccent,
-                fontWeight: FontWeight.w500,
+                fontFamily: 'NanumPen',
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
               ),
             ),
-            SizedBox(height: 8),
-            // 세 번째 행: 특이사항 (오른쪽 정렬)
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                note,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.orange,
-                  fontStyle: FontStyle.italic,
+            if (note.isNotEmpty) ...[
+              SizedBox(height: 10),
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  note,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.brown.shade700,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
+
   }
 }
