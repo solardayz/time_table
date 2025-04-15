@@ -81,8 +81,23 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pastelColors = [
+      Colors.pink.shade100,
+      Colors.blue.shade100,
+      Colors.green.shade100,
+      Colors.amber.shade100,
+      Colors.purple.shade100,
+      Colors.orange.shade100,
+    ];
+
     return Scaffold(
-      appBar: AppBar(title: Text("누가 사용할거에요?")),
+      backgroundColor: Color(0xFFFDF6F0),
+      appBar: AppBar(
+        title: Text("누가 사용할까요?", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.pinkAccent.shade100,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -95,9 +110,14 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                     controller: _userController,
                     decoration: InputDecoration(
                       labelText: "이름 입력",
-                      hintText: "사용자 이름을 입력하세요",
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                      hintText: "예: 말랑이",
+                      prefixIcon: Icon(Icons.person_outline),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16.0),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
@@ -105,18 +125,16 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                 ElevatedButton(
                   onPressed: _addUser,
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: Colors.pinkAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   ),
-                  child: Text("추가", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text("추가", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            Divider(thickness: 2, color: Colors.grey[400]),
-            SizedBox(height: 16),
-            // 사용자 리스트
+            SizedBox(height: 20),
             Expanded(
               child: FutureBuilder<List<User>>(
                 future: _usersFuture,
@@ -124,32 +142,49 @@ class _UserSelectScreenState extends State<UserSelectScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting)
                     return Center(child: CircularProgressIndicator());
                   if (snapshot.hasError)
-                    return Center(child: Text("Error: ${snapshot.error}"));
+                    return Center(child: Text("오류: ${snapshot.error}"));
+
                   final users = snapshot.data ?? [];
-                  if (users.isEmpty) return Center(child: Text("등록된 사용자가 없습니다."));
+                  if (users.isEmpty)
+                    return Center(child: Text("등록된 사용자가 없어요!", style: TextStyle(fontSize: 16)));
+
                   return ListView.separated(
                     itemCount: users.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 8),
+                    separatorBuilder: (_, __) => SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final user = users[index];
+                      final cardColor = pastelColors[index % pastelColors.length];
                       return Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        color: cardColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 4,
                         child: ListTile(
-                          leading: Icon(Icons.person, color: Colors.deepPurple),
-                          title: Text(user.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          leading: Icon(Icons.person, size: 28, color: Colors.black54),
+                          title: Text(
+                            user.name,
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                          ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(icon: Icon(Icons.edit, color: Colors.blue), onPressed: () => _updateUser(user)),
-                              IconButton(icon: Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteUser(user)),
-                              Icon(Icons.arrow_forward_ios, size: 18),
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.indigo),
+                                onPressed: () => _updateUser(user),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () => _deleteUser(user),
+                              ),
+                              Icon(Icons.chevron_right),
                             ],
                           ),
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => TimetableScreen(user: user)),
+                              MaterialPageRoute(
+                                builder: (_) => TimetableScreen(user: user),
+                              ),
                             );
                           },
                         ),
