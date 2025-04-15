@@ -31,7 +31,8 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
 
   // 사용자가 선택한 알람 오프셋을 DB에 저장하고, Snackbar로 메시지를 표시 후 화면을 닫습니다.
   void _saveAlarmOffset() async {
-    await DatabaseHelper.instance.insertOrUpdateAlarm(widget.userId, alarmOffset);
+    await DatabaseHelper.instance.insertOrUpdateAlarm(
+        widget.userId, alarmOffset);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$alarmOffset 분전에 울림으로 변경되어 있습니다.')),
     );
@@ -90,57 +91,96 @@ class _AlarmSettingsScreenState extends State<AlarmSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pastelGradient = LinearGradient(
+      colors: [Color(0xFFFCE4EC), Color(0xFFF8BBD0)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text("알람 설정"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '종료 몇 분 전에 알람을 울릴까요?',
-              style: TextStyle(fontSize: 20),
-            ),
-            SizedBox(height: 16),
-            // 슬라이더
-            Slider(
-              value: alarmOffset.toDouble(),
-              min: 1, // 최소 1분부터 선택
-              max: 60,
-              divisions: 60,
-              label: '$alarmOffset 분 전',
-              onChanged: (value) {
-                setState(() {
-                  alarmOffset = value.toInt();
-                  _textController.text = alarmOffset.toString();
-                });
-              },
-            ),
-            SizedBox(height: 16),
-            // 가운데 구분선과 함께 알람 오프셋을 표시하는 위젯
-            buildAlarmOffsetDisplay(),
-            SizedBox(height: 16),
-            // 하단 텍스트 필드 (1~60 범위의 숫자만 입력 가능)
-            TextFormField(
-              controller: _textController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: InputDecoration(
-                labelText: '알람 시간(분 전)',
-                border: OutlineInputBorder(),
+      body: Container(
+        decoration: BoxDecoration(gradient: pastelGradient),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "⏰ 알람 시간 설정",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              onChanged: _updateAlarmOffsetFromText,
-            ),
-            Spacer(),
-            Center(
-              child: ElevatedButton(
-                onPressed: _saveAlarmOffset,
-                child: Text('저장', style: TextStyle(fontSize: 18)),
+              SizedBox(height: 16),
+              Text(
+                "수업 끝나기 전에 언제 알람이 울릴까요?",
+                style: TextStyle(fontSize: 18),
               ),
-            )
-          ],
+              SizedBox(height: 32),
+
+              // 카드 형태로 묶은 슬라이더 + 텍스트 필드
+              Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Slider(
+                        value: alarmOffset.toDouble(),
+                        min: 1,
+                        max: 60,
+                        divisions: 59,
+                        label: '$alarmOffset 분 전',
+                        onChanged: (value) {
+                          setState(() {
+                            alarmOffset = value.toInt();
+                            _textController.text = alarmOffset.toString();
+                          });
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      buildAlarmOffsetDisplay(),
+                      SizedBox(height: 20),
+                      TextFormField(
+                        controller: _textController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          labelText: '알림 시간 (분 전)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius
+                              .circular(12)),
+                        ),
+                        onChanged: _updateAlarmOffsetFromText,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              Spacer(),
+
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _saveAlarmOffset,
+                  icon: Icon(Icons.check),
+                  label: Text("저장", style: TextStyle(fontSize: 18)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pinkAccent,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
